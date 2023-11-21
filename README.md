@@ -13,10 +13,10 @@ My rewrite will use Python 3. This is not because I think it is the best languag
 
 Ideally my rewrite should be easy enough for a non-technical user that this is not really *necessary*, but I wish to avoid the same situation we have now recurring in another 20 year's time.
 
-## Structure of the program
+## Features of the program
 First I will write a command-line version, implementing similar commands to the current AutoUmpire (however I will not require the interface to be identical, as this is precisely the thing I am trying to improve!)
 
-Data storage will use MongoDB. This is because it stores data on disk in JSON format, which is human-readable.
+~~Data storage will use MongoDB. This is because it stores data on disk in JSON format, which is human-readable.~~ *I will in fact use SQLAlchemy, and Python classes. I hope to however write it in an easier-to-comprehend way than the source code of the current version -- at the very least it will have more comments!
 
 The tasks the program needs to be able to achieve are
 
@@ -69,3 +69,8 @@ The tasks the program needs to be able to achieve are
 	- Command to send someone wanted.
 	- Command to redeem them.
 - [ ] Thunderbolt a player
+
+## Files
+- `config.json`: contains the configuration data for AutoUmpire. Config options are
+	- `db_address`: address for the database for SQLAlchemy to use. For sqlite, which stores the database as an on-disk file, the format is `sqlite+pysqlite:///[filename]`
+- `assassins_data.py` a module file setting up the connection to the database, and defining Classes representing the data stored therein such as `Player`, `Assassin`, `Police`, `Event`, `Report`, `TargetGroup`, ...

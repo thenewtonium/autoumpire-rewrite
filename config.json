@@ -1,4 +1,5 @@
 {
   "db_address":"sqlite+pysqlite:///test.db",
-  "default_email_domain": "cam.ac.uk"
+  "default_email_domain": "cam.ac.uk",
+  "verbose": true
 }

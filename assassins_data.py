@@ -41,11 +41,22 @@ class Player(Base):
 # anything importing this module will be able to access both of these under
 # `assassins_data.config` and `assassins_data.engine`.
 import json
+
+defaults = {
+    "verbose" : True
+}
+
 try:
+    # load config file
     with open('config.json') as f:
         config = json.load(f)
+
+    for c in defaults.keys():
+        if c not in config.keys():
+            config[c] = defaults[c]
+
     try:
-        engine = create_engine(config["db_address"], echo=True)
+        engine = create_engine(config["db_address"], echo=config["verbose"])
         # register table metadata based on ORM models above
         Base.metadata.create_all(engine)
     except BaseException as e:

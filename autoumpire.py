@@ -2,7 +2,9 @@
 # This brings up a commandline-style interface to type commands
 
 from email_validator import validate_email, EmailNotValidError
-from assassins_data import config, WaterStatus, Player
+from assassins_data import config, engine, WaterStatus, Player
+from sqlalchemy.orm import Session
+from sqlalchemy import select, func
 
 ##### COMMAND FUNCTION DEFS #####
 
@@ -24,38 +26,73 @@ def cmd_exit():
 # `add player` command
 from actions.add_player import add_player
 def cmd_add_player():
-    # Ask for
-    realname = str(input("Enter player's full real name: ")).strip().title()
+    # give exit instructions
+    print("(To cancel, leave a field blank)")
 
     # Ask for email address, validating it.
     email = ""
     invalid_email = True
     while invalid_email:
+        # ask for email
         email = input("Enter player's email address or crsID: ")
+        # "escape" by leaving blank
+        if email == "":
+            return
+        # validate email
         try:
             emailinfo = validate_email(email, check_deliverability=True)
             email = emailinfo.normalized
-            invalid_email = False
+        # if email invalid, first assume a crsID was given,
+        # so try to validate again with @cam.ac.uk appended
         except EmailNotValidError as e:
-            # if there is a error, assume first that it is is a crsID, and re-verify
             try:
                 email = email + "@" + config["default_email_domain"]
                 emailinfo = validate_email(email, check_deliverability=True)
                 email = emailinfo.normalized
-                invalid_email = False
+            # if email invalid and a crsID also not given,
+            # print the validation error to the user
+            # and skip to asking email again
             except:
                 print(str(e))
+                continue
+        # if got to this point email should have been validated
+        # check if email already taken
+        # (the email column is set to UNIQUE anyway,
+        # but this makes it clearer to the user that there's a duplicate)
+        with Session(engine) as session:
+            res = session.scalars(select(Player).where(Player.email == email)).one_or_none()
+        # if email not already in DB, accept it
+        if res == None:
+            invalid_email = False # not actually necessary but ¯\_(ツ)_/¯
+            break
+        else:
+            print(f"Email {email} already registered for player {res.realname} of {res.college}.")
     print(f"Email address recorded as {email}.")
+
+    # Ask for real name
+    realname = str(input("Enter player's full real name: ")).strip().title()
+    # "escape" by leaving blank
+    if realname == "":
+        return
 
     # Ask for intial pseudonym
     initial_pseudonym = str(input("Enter player's (initial) pseudonym: "))
+    # "escape" by leaving blank
+    if initial_pseudonym == "":
+        return
 
     # Ask for College
     college = str(input("Enter player's College: ")).strip().title()
+    # "escape" by leaving blank
+    if college == "":
+        return
     # (to-do: maybe add verification)
 
     # Ask for Address
     address = str(input("Enter player's Address (on a single line): "))
+    # "escape" by leaving blank
+    if address == "":
+        return
 
     # Ask for water status
     # First list out the options with corresponing indices to respond with
@@ -67,14 +104,20 @@ def cmd_add_player():
     while invalid_selection:
         try:
             s = input()
+            # "escape" by leaving blank
+            if str(s) == "":
+                return
+            # get corresponding option
             water = ws_selector[int(s)]
         except:
             print(f"`{s}` is not a valid selection.")
         else:
-            invalid_selection = False
+            invalid_selection = False # not actually necessary but ¯\_(ツ)_/¯
+            break
 
     # Ask for notes
     notes = str(input("Enter player notes (one line only): "))
+    # no escape because last input anyway
 
     print(
 f"""--Summary of player--
@@ -121,7 +164,11 @@ def main():
 
     while True:
         cmd = str(input('> ')).strip().lower()
-        command_reg[cmd]()
+        if cmd in command_reg.keys():
+            command_reg[cmd]()
+            print(end="") # flushes output; > doesn't show otherwise
+        else:
+            print("Invalid command. Type `help` to see commands.")
 
 # run `main` only if called from command line.
 import sys

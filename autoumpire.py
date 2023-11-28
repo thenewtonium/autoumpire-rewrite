@@ -2,7 +2,7 @@
 # This brings up a commandline-style interface to type commands
 
 from email_validator import validate_email, EmailNotValidError
-from assassins_data import config, WaterStatus
+from assassins_data import config, WaterStatus, Player
 
 ##### COMMAND FUNCTION DEFS #####
 
@@ -22,6 +22,7 @@ def cmd_exit():
     exit()
 
 # `add player` command
+from actions.add_player import add_player
 def cmd_add_player():
     # Ask for
     realname = str(input("Enter player's full real name: ")).strip().title()
@@ -89,8 +90,16 @@ Type Y to add this player.
 """
     )
     if str(input()).upper() == "Y":
-        # do database stuff
-        pass
+        player = Player(
+                    realname=realname,
+                    email=email,
+                    initial_pseudonym=initial_pseudonym,
+                    college=college,
+                    address=address,
+                    water=water,
+                    notes=notes
+        )
+        add_player(player)
     else:
         print("Did not add player.")
 

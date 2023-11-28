@@ -72,5 +72,11 @@ The tasks the program needs to be able to achieve are
 
 ## Files
 - `config.json`: contains the configuration data for AutoUmpire. Config options are
-	- `db_address`: address for the database for SQLAlchemy to use. For sqlite, which stores the database as an on-disk file, the format is `sqlite+pysqlite:///[filename]`
+    - `db_address`: address for the database for SQLAlchemy to use. For sqlite, which stores the database as an on-disk file, the format is `sqlite+pysqlite:///[filename]`
 - `assassins_data.py` a module file setting up the connection to the database, and defining Classes representing the data stored therein such as `Player`, `Assassin`, `Police`, `Event`, `Report`, `TargetGroup`, ...
+
+## "Polishing-up" to-do
+These are ways in which I want to refactor the code to improve error handling etc
+- [ ] Make Email Class to simplify validation. Would like to auto-cast crsIDs to emails, but may be problematic?
+- [ ] Make Colleges enum (in its own file for easy adding)
+- [ ] More file separation? idk

@@ -4,7 +4,8 @@
 from email_validator import validate_email, EmailNotValidError
 from assassins_data import config, engine, WaterStatus, Player
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func
+from sqlalchemy import select
+from os import getcwd
 
 ##### COMMAND FUNCTION DEFS #####
 
@@ -12,9 +13,10 @@ from sqlalchemy import select, func
 def cmd_help():
     print(
 """AutoUmpire Help:
-    add_player - You will be prompted for the signup data to add to the system.
+    add player - Register a player. You will be prompted for their initial signup information.
     exit - Exits AutoUmpire.
     help - Displays this text.
+    load csv - Register many players at once, from a CSV file which you will be prompted for.
 """
     )
 
@@ -146,6 +148,15 @@ Type Y to add this player.
     else:
         print("Did not add player.")
 
+# `load csv` command
+from actions.load_csv import load_csv, required_headings
+def cmd_load_csv():
+    print("Enter filepath of CSV file to load initial player dater from.")
+    print(f"Current directory is {getcwd()}.")
+    print("The CSV must have headings")
+    print(', '.join(required_headings))
+    print("but these may be in any order.")
+    load_csv(str(input("CSV file path: ")))
 
 # registry of commands.
 command_reg = {
@@ -153,7 +164,8 @@ command_reg = {
     "`help`": cmd_help,  # this is an alias in case the user is an idiot
     "`help`.": cmd_help,  # ditto
     "exit": cmd_exit,
-    "add player": cmd_add_player
+    "add player": cmd_add_player,
+    "load csv": cmd_load_csv
 }
 
 

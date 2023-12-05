@@ -6,6 +6,7 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import create_engine, String, ForeignKey, select
 from enum import Enum
+from email_validator import validate_email, EmailNotValidError
 
 #####DATABASE ORM MODELS######
 
@@ -25,14 +26,43 @@ class WaterStatus(Enum):
 class Player(Base):
     __tablename__ = "players"
     id: Mapped[int] = mapped_column(primary_key=True)
-    email: Mapped[str] = mapped_column(unique=True) # don't want accidental duplication!
+    _email: Mapped[str] = mapped_column(unique=True) # don't want accidental duplication!
     realname: Mapped[str]
     address: Mapped[str]
     college: Mapped[str]
-    water: Mapped[WaterStatus]
+    _water: Mapped[WaterStatus]
     notes: Mapped[str]
     initial_pseudonym: Mapped[str]
     #seed: Optional[Mapped[int]] # will omit for now
+
+    # email property - setter enforces valid email
+    @property
+    def email(self) -> Mapped[str]:
+        return self._email
+    @email.setter
+    def email(self, value):
+        try:
+            emailinfo = validate_email(value, check_deliverability=True)
+            value = emailinfo.normalized
+        # if email invalid, first assume a crsID was given,
+        # so try to validate again with @cam.ac.uk appended
+        except EmailNotValidError as e:
+            value = value + "@" + config["default_email_domain"]
+            emailinfo = validate_email(value, check_deliverability=True)
+            value = emailinfo.normalized
+        self._email = value
+
+    # WaterStatus property - setter enforces Enum value
+    @property
+    def water(self) -> Mapped[WaterStatus]:
+        return self._water
+    @water.setter
+    def water(self, value):
+        self._water = WaterStatus(value)
+
+
+    def __repr__(self) -> str:
+        return f"{self.realname}, {self.email}, {self.initial_pseudonym}, {self.college}, {self.address}, {self.water.value}, {self.notes}"
 
 
 ##########DATABASE SETUP########

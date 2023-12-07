@@ -12,6 +12,11 @@ from sqlalchemy import select
 required_headings = ["realname", "email", "initial_pseudonym", "college", "address", "water", "notes"]
 blank_allowed = ["notes"]
 
+
+# function to bulk-register players from a csv file
+# the order of columns is free,
+# but they must be headed by the attribute names given in required_headings above
+# which correspond to the attribute names of the Player class
 def load_csv(filepath, save=False):
     ok_players = []
     session = Session(engine)
@@ -54,6 +59,7 @@ def load_csv(filepath, save=False):
                     session.flush()
                     ok_players.append(newplayer)
                 except Exception as e:
+                    #raise e
                     print(f"Problem in row {', '.join(row)}\n{e}")
 
     # if not autosaving, ask for confirmation
@@ -74,6 +80,12 @@ def load_csv(filepath, save=False):
     #return ok_players
 
 # code to run when called by command line
+# this script takes an argument for the filepath,
+# and has a flag -s for whether to ask to confirm before registring or not;
+# this is so that it can be called from command line by another non-python program,
+# e.g. a web-interface
+# (however I will in fact use flask for this so it's not really necessary,
+# but I want to have a self-contained cli version of autoumpire!)
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()

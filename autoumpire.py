@@ -158,6 +158,16 @@ def cmd_load_csv():
     print("but these may be in any order.")
     load_csv(str(input("CSV file path: ")))
 
+# `start game` command
+from actions.start_game import start_game
+def cmd_start_game():
+    start_game()
+
+# `assign targets` command -- only needed in case something breaks
+from actions.assign_targets import assign_targets
+def cmd_assign_targets():
+    assign_targets
+
 # registry of commands.
 command_reg = {
     "help" : cmd_help,
@@ -165,7 +175,9 @@ command_reg = {
     "`help`.": cmd_help,  # ditto
     "exit": cmd_exit,
     "add player": cmd_add_player,
-    "load csv": cmd_load_csv
+    "load csv": cmd_load_csv,
+    "start game": cmd_start_game,
+    "assign targets": cmd_assign_targets
 }
 
 
@@ -177,7 +189,10 @@ def main():
     while True:
         cmd = str(input('> ')).strip().lower()
         if cmd in command_reg.keys():
-            command_reg[cmd]()
+            try:
+                command_reg[cmd]()
+            except Exception as e:
+                print(e.with_traceback())
             print(end="") # flushes output; > doesn't show otherwise
         else:
             print("Invalid command. Type `help` to see commands.")

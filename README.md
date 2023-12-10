@@ -82,3 +82,4 @@ These are ways in which I want to refactor the code to improve error handling et
     - [ ] Proper error classes?
 - [ ] More file separation? idk
 - [ ] Check for duplicated initial pseudonyms
+- [ ] Proper target assignment (don't just assign 1 target, and impose girth >3)

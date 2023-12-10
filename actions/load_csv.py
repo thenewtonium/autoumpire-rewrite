@@ -85,7 +85,7 @@ def load_csv(filepath, save=False):
 # this is so that it can be called from command line by another non-python program,
 # e.g. a web-interface
 # (however I will in fact use flask for this so it's not really necessary,
-# but I want to have a self-contained cli version of autoumpire!)
+# but I want to have a self-contained cli version of autoumpire-rewrite!)
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()

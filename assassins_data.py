@@ -8,6 +8,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import create_engine, String, ForeignKey, select, Column, Table
 from enum import Enum
 from email_validator import validate_email, EmailNotValidError
+from datetime import datetime
 
 
 #####DATABASE ORM MODELS######
@@ -89,16 +90,15 @@ class Assassin(Base):
     __tablename__ = "assassins"
     id = mapped_column(ForeignKey(Player.id), primary_key=True)
     player: Mapped["Player"] = relationship(back_populates="instances")
-    # when a player dies, we don't delete them from the database but just set this to false
-    # or maybe we do want to move?
     alive: Mapped[bool] = mapped_column(default=True)
-
+    competence_deadline: Mapped[datetime]
     pseudonyms: Mapped[List["Pseudonym"]] = relationship(back_populates="owner")
 
     targets: Mapped[List["Assassin"]] = relationship(secondary=targetting_table,
                                                      primaryjoin="Assassin.id==targetting_table.c.assassin_id",
                                                      secondaryjoin="Assassin.id==targetting_table.c.target_id")
-    assassins: Mapped[List["Assassin"]] = relationship(secondary=targetting_table,
+    assassins: Mapped[List["Assassin"]] = relationship(overlaps="targets",
+                                                       secondary=targetting_table,
                                                        primaryjoin="Assassin.id==targetting_table.c.target_id",
                                                        secondaryjoin="Assassin.id==targetting_table.c.assassin_id")
 
@@ -132,7 +132,9 @@ import json
 defaults = {
     "verbose": True,
     "n_targs": 3,
-    "check_email_deliverability": True
+    "check_email_deliverability": True,
+    "initial_competence": 7,
+    "locale": "en_GB"
 }
 
 try:

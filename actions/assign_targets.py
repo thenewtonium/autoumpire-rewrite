@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 import random
 
 # function to assign targets to assassins
-# this will usually be called by other parts of autoumpire,
+# this will usually be called by other parts of autoumpire-rewrite,
 # e.g. on game start and after a death,
 # but can also be called as a command in itself if needed
 def assign_targets():

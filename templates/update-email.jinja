@@ -1,0 +1,21 @@
+{{ message }}
+
+---
+Your Details:
+            Name: {{ player.realname }}
+         Address: {{ player.address }}
+         College: {{ player.college }}
+    Water Status: {{ player.water.value }}
+           Notes: {{ player.notes }}
+
+----------------
+Your targets are:
+{% for t in targets %}
+Name: {{ t.realname }}
+College: {{ t.college }}
+Address: {{ t.address }}
+Water Weapons Status: {{ t.water.value }}
+Notes: {{ t.notes }}
+{% endfor %}
+----------------
+Your competence deadline is {{ competence_deadline }}

@@ -4,7 +4,7 @@ from os import path
 sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
 
 # actual imports
-from assassins_data import config, engine, Assassin, targetting_table
+from assassins_data import config, engine, Assassin, TargRel
 from sqlalchemy import select, func, and_, or_, insert
 from sqlalchemy.orm import Session
 import random
@@ -17,8 +17,8 @@ def assign_targets():
     with Session(engine) as session:
         # subquery which counts the number of targets a given assassin has
         count_targs = (
-            select(func.count(targetting_table.c.assassin_id))
-                .where(targetting_table.c.assassin_id == Assassin.id)
+            select(func.count(TargRel.assassin_id))
+                .where(TargRel.assassin_id == Assassin.id)
                 .scalar_subquery()
         )
         # queries all alive assassins with fewer than config["n_targs"] targets
@@ -28,8 +28,8 @@ def assign_targets():
                             )
         # subquery which counts the number of assassins a given assassin has
         count_asses = (
-            select(func.count(targetting_table.c.assassin_id))
-                .where(targetting_table.c.target_id == Assassin.id)
+            select(func.count(TargRel.assassin_id))
+                .where(TargRel.target_id == Assassin.id)
                 .scalar_subquery()
         )
         # queries all alive assassins with fewer than config["n_targs"] assassins
@@ -50,11 +50,11 @@ def assign_targets():
                     continue
                 # check if `a` and `t` already have a targetting relation, in either direction
                 # in which case disallow `t` as a choice of target
-                res = session.scalars(select(targetting_table)
+                res = session.scalars(select(TargRel)
                                       .where(
                     or_(
-                        and_(targetting_table.c.assassin_id == a, targetting_table.c.target_id == t),
-                        and_(targetting_table.c.assassin_id == t, targetting_table.c.target_id == a)
+                        and_(TargRel.assassin_id == a, TargRel.target_id == t),
+                        and_(TargRel.assassin_id == t, TargRel.target_id == a)
                     )
                                         )
                 ).one_or_none()
@@ -64,7 +64,7 @@ def assign_targets():
                 break
             #print(a,t)
             # set `a` to target `t` now that it has been verified as ok
-            session.execute(insert(targetting_table).values(assassin_id=a,target_id=t))
+            session.add(TargRel(assassin_id=a,target_id=t))
             need_asses.remove(t)
 
         session.commit()

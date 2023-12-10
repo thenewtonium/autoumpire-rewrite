@@ -76,13 +76,16 @@ class Player(Base):
         return f"{self.realname}, {self.email}, {self.initial_pseudonym}, {self.college}, {self.address}, {self.water.value}, {self.notes}"
 
 
-targetting_table = Table(
-    "targetting_table",
-    Base.metadata,
-    Column("target_id", ForeignKey("assassins.id"), primary_key=True),
-    Column("assassin_id", ForeignKey("assassins.id"), primary_key=True),
-)
+class TargRel(Base):
+    __tablename__ = "targetting_table"
+    target_id = mapped_column(ForeignKey(f"assassins.id"), primary_key=True)
+    target : Mapped["Assassin"] = relationship(foreign_keys=[target_id])
 
+    assassin_id = mapped_column(ForeignKey("assassins.id"), primary_key=True)
+    assassin : Mapped["Assassin"] = relationship(foreign_keys=[assassin_id])
+
+    def __repr__(self) -> str:
+        return f"{self.assassin.player.realname} targetting {self.target.player.realname}"
 
 # Assassin class:
 # This stores active players
@@ -94,13 +97,13 @@ class Assassin(Base):
     competence_deadline: Mapped[datetime]
     pseudonyms: Mapped[List["Pseudonym"]] = relationship(back_populates="owner")
 
-    targets: Mapped[List["Assassin"]] = relationship(secondary=targetting_table,
-                                                     primaryjoin="Assassin.id==targetting_table.c.assassin_id",
-                                                     secondaryjoin="Assassin.id==targetting_table.c.target_id")
+    targets: Mapped[List["Assassin"]] = relationship(secondary=TargRel.__tablename__,
+                                                     primaryjoin="Assassin.id==TargRel.assassin_id",
+                                                     secondaryjoin="Assassin.id==TargRel.target_id")
     assassins: Mapped[List["Assassin"]] = relationship(overlaps="targets",
-                                                       secondary=targetting_table,
-                                                       primaryjoin="Assassin.id==targetting_table.c.target_id",
-                                                       secondaryjoin="Assassin.id==targetting_table.c.assassin_id")
+                                                       secondary=TargRel.__tablename__,
+                                                       primaryjoin="Assassin.id==TargRel.target_id",
+                                                       secondaryjoin="Assassin.id==TargRel.assassin_id")
 
     def __repr__(self) -> str:
         return (f"player=({self.player}), pseudonyms=({self.pseudonyms}), "

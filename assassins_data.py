@@ -25,6 +25,9 @@ class WaterStatus(Enum):
     CARE = "Water With Care"
     NO = "No Water"
 
+    def __repr__(self) -> str:
+        return self.value
+
 
 # Player class:
 # This stores initial signup data
@@ -75,14 +78,16 @@ class Player(Base):
     def __repr__(self) -> str:
         return f"{self.realname}, {self.email}, {self.initial_pseudonym}, {self.college}, {self.address}, {self.water.value}, {self.notes}"
 
-
+# TargRel class:
+# short for "targetting relation"
+# -- corresponds to a table storing who is targetting who
 class TargRel(Base):
     __tablename__ = "targetting_table"
     target_id = mapped_column(ForeignKey(f"assassins.id"), primary_key=True)
-    target : Mapped["Assassin"] = relationship(foreign_keys=[target_id])
+    target: Mapped["Assassin"] = relationship(foreign_keys=[target_id])
 
     assassin_id = mapped_column(ForeignKey("assassins.id"), primary_key=True)
-    assassin : Mapped["Assassin"] = relationship(foreign_keys=[assassin_id])
+    assassin: Mapped["Assassin"] = relationship(foreign_keys=[assassin_id])
 
     def __repr__(self) -> str:
         return f"{self.assassin.player.realname} targetting {self.target.player.realname}"
@@ -142,7 +147,7 @@ defaults = {
 
 try:
     # load config file
-    with open('config.json') as f:
+    with open('au_core/config.json') as f:
         config = json.load(f)
 
     for c in defaults.keys():

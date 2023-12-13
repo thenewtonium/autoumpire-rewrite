@@ -1,0 +1,9 @@
+{
+  "db_address":"sqlite+pysqlite:///test.db",
+  "default_email_domain": "cam.ac.uk",
+  "verbose": true,
+  "n_targs": 2,
+  "initial_competence": 7,
+  "check_email_deliverability": false,
+  "locale": "en_GB"
+}

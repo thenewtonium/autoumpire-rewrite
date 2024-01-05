@@ -26,6 +26,12 @@ class RegType(NiceEnum):
     FULL = "Full Player"
     POLICE = "Police"
 
+class PseudonymColour(NiceEnum):
+    """
+    Pseudonym colour enum
+    """
+    DEFAULT = "default"
+
 class WaterStatus(NiceEnum):
     """
     Water Weapons Status enum

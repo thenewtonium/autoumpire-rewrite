@@ -151,3 +151,4 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 !/au_core/config.json
+!/au_core/config.json

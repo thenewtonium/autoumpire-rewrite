@@ -45,15 +45,16 @@ class Game(Base):
     # back-populated lists
     registrations: Mapped[List["Registration"]] = relationship(back_populates="game")
 
-    def __repr__(self) -> str:
-        return f"Game(id={self.id},name={self.name},live={self.live})"
+    #def __repr__(self) -> str:
+    #    return f"Game(id={self.id},name={self.name},live={self.live})"
 
     # game logic
+    
     def delete(self):
         """
         Delete this game. Only allowed if game is not live!
         """
-        session = self.get_session()
+        session = self.session
 
         if not self.live:
             session.delete(self)
@@ -65,6 +66,7 @@ class Game(Base):
         else:
             raise LiveGameError(f"Cannot delete game {self} as it is live.")
 
+    # TODO: perhaps remove this
     def add_registration(self, **info) -> Registration:
         """
         Register a player in the game, validating the data.
@@ -72,7 +74,7 @@ class Game(Base):
         :param info: Keyword arguments are passed into the constructor for the Registration
         :return: The Registration of the player just registered.
         """
-        session = self.get_session()
+        session = self.session
 
         newreg = Registration(game=self, **info)
         newreg.validate_w_session(session)

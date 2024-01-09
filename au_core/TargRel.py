@@ -6,9 +6,10 @@ Sets up the targetting table, by defining the TargRel class.
 
 from .Base import Base
 from .Assassin import Assassin
-from sqlalchemy.orm import Mapped, mapped_column, relationship, deferred, Session
-from sqlalchemy import ForeignKey, select
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import ForeignKey
 
+# TODO: put CHECK constraint on target and assassin game_id's
 class TargRel(Base):
     """
     TargRel class

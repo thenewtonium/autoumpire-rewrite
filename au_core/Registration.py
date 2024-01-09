@@ -4,14 +4,10 @@ Registration.py
 Defines the ORM model `Registration` representing initial player registrations.
 """
 
-# TODO: Revert this back to a Player class and use inheritance to derive Assassins and Police from it.
-
-from typing import Union
 from sqlalchemy.orm import Mapped, mapped_column, relationship, deferred, Session
 from sqlalchemy import ForeignKey, select
 from .Base import Base
 from .enums import RegType, College, WaterStatus
-from .db import db
 from email_validator import validate_email, EmailNotValidError
 from warnings import warn
 

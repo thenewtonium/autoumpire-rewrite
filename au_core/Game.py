@@ -7,10 +7,13 @@ Also implements most of the game logic as methods of this class.
 
 from typing import List, TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
-if TYPE_CHECKING:
-    from enums import RegType
+from .enums import RegType
 from .Base import Base
 from .Registration import Registration
+from .Player import Player
+from .Assassin import Assassin
+from .Police import Police
+from .Pseudonym import Pseudonym
 from .config import config
 from datetime import timedelta
 
@@ -65,6 +68,26 @@ class Game(Base):
             #session.commit()
         else:
             raise LiveGameError(f"Cannot delete game {self} as it is live.")
+
+    def add_player_from_reg(self, registration: Registration) -> Player:
+        session = self.session # self.session is actually a function call, so we only want to call this once
+        registration.game = self
+        registration.validate_w_session(session)
+
+        # set constructor based on the type in the registration
+        constructor = Player
+        if registration.type == RegType.FULL:
+            constructor = Assassin
+        elif registration.type == RegType.POLICE:
+            constructor = Police
+
+        newplayer = constructor(reg=registration)#, game_id=self.id)
+        newpseudonym = Pseudonym(owner=newplayer, text=registration.initial_pseudonym)
+        session.add(newplayer)
+        session.add(newpseudonym)
+
+        return newplayer
+
 
     # TODO: perhaps remove this
     def add_registration(self, **info) -> Registration:

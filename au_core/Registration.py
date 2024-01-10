@@ -55,7 +55,7 @@ class Registration(Base):
 
     # other signup data
     email: Mapped[str]
-    initial_pseudonym: Mapped[str]
+    initial_pseudonym: Mapped[str] = mapped_column(unique=True)
     type: Mapped[RegType]
 
     # related objects

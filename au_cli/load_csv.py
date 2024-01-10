@@ -81,7 +81,8 @@ if __name__ == '__main__':
         [print(r) for r in regs]
         resp = input(f"Enter Y to add these registrations to game {game.name}? ").upper()
         if resp == "Y":
-            game.session.add_all(regs)
+            for reg in regs:
+                game.add_player_from_reg(reg)
             game.session.commit()
             print("Successfully added all registrations to the game.")
         else:

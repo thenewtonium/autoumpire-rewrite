@@ -27,10 +27,10 @@ class Pseudonym(Base):
 
     # Note that game_id and text form a composite uniqueness constraint
     # (this is defined in __table_args__)
-    game_id: Mapped # foreign key Player.game_id (see __table_args__)
+    game_id = mapped_column(ForeignKey(Player.game_id))
     text: Mapped[str]
 
-    colour: Mapped[PseudonymColour]
+    colour: Mapped[PseudonymColour] = mapped_column(default=PseudonymColour.DEFAULT)
 
-    owner_id: Mapped # foreign key Player.id (see __table_args__)
-    owner: Mapped[Player] = relationship(back_populates="pseudonyms")
+    owner_id = mapped_column(ForeignKey(Player.id))
+    owner: Mapped[Player] = relationship(back_populates="pseudonyms",foreign_keys=[owner_id,game_id])

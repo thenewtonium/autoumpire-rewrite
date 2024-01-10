@@ -16,8 +16,6 @@ class NiceEnum(Enum):
         """
         return self.value
 
-from .Assassin import Assassin
-from .Police import Police
 
 class RegType(NiceEnum):
     """
@@ -28,6 +26,7 @@ class RegType(NiceEnum):
     """
     FULL = "Full Player"
     POLICE = "Police"
+
 
 class PseudonymColour(NiceEnum):
     """

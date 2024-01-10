@@ -5,7 +5,8 @@ Defines the ORM model `Police` representing the instance of a player who is Poli
 """
 
 from .Player import Player
-from sqlalchemy.orm import Mapped
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
 
 class Police(Player):
     """
@@ -16,9 +17,10 @@ class Police(Player):
     """
 
     __tablename__ = "police"
+    id = mapped_column(ForeignKey(Player.id), primary_key=True)
 
     # TODO: deal with rank properly, including options for thematic rank names
-    rank: Mapped[str]
+    rank: Mapped[str] = mapped_column(default="")
 
     # TODO: Corrupt police to be implemented by a separate table
     # TODO: death time, for notifying a player when they have respawned?

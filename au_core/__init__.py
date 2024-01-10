@@ -57,7 +57,7 @@ def fetch_game_w_session(session: Session, id: Optional[int] = None, name: Optio
     if name is not None:
         fetchedgame = session.scalars(select(Game).filter_by(name=name)).one_or_none()
         if fetchedgame is None:
-            raise GameNotFoundError(f"There is no game with name = '{fetchedgame}'")
+            raise GameNotFoundError(f"There is no game with name = '{name}'")
 
     return fetchedgame
 

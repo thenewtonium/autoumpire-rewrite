@@ -21,16 +21,16 @@ class Pseudonym(Base):
 
     __tablename__ = "pseudonyms"
     __table_args__ = (UniqueConstraint("game_id","text"),
-                      ForeignKeyConstraint(["game_id","owner_id"],[Player.game_id,Player.id]))
+                      ForeignKeyConstraint(["game_id","owner_id"],[Player.game_id, Player.id]))
 
     id: Mapped[int] = mapped_column(primary_key=True)  # reduce database size by referring using id
 
     # Note that game_id and text form a composite uniqueness constraint
     # (this is defined in __table_args__)
-    game_id = mapped_column(ForeignKey(Player.game_id))
+    game_id: Mapped[int]# = mapped_column(ForeignKey(Player.game_id))
     text: Mapped[str]
 
     colour: Mapped[PseudonymColour] = mapped_column(default=PseudonymColour.DEFAULT)
 
-    owner_id = mapped_column(ForeignKey(Player.id))
-    owner: Mapped[Player] = relationship(back_populates="pseudonyms",foreign_keys=[owner_id,game_id])
+    owner_id: Mapped[int] = mapped_column(ForeignKey(Player.id))
+    owner: Mapped[Player] = relationship(back_populates="pseudonyms",foreign_keys="[Pseudonym.owner_id,Pseudonym.game_id]")

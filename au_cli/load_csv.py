@@ -4,13 +4,26 @@ load_csv.py
 A command line utility for loading player registrations from a CSV file.
 """
 
+# parse command line arguments first so that --help doesn't boot up au_core
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("filepath", help="The path of the CSV file to load.", type=str)
+
+    parser.add_argument("-s", "--save", help="Include this flag to skip confirmation of adding loaded players",
+                        action='store_true')
+    parser.add_argument("-g", "--game", help="The name of the game to load the CSV into.",
+                        type=str)
+    args = parser.parse_args()
+
 # some nonsense to allow us to import from the above directory
 import sys
 from os import path
 sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
 
 import csv
-import argparse
 import au_core as au
 from typing import List, Optional
 from warnings import warn
@@ -22,6 +35,9 @@ class MissingHeadingsError(Exception):
     """
     Exception raised when a CSV file being parsed is missing required headings.
     """
+    def __init__(self, *args, **kwargs):
+        self.missing_headings = kwargs["missing_headings"]
+        super().__init__(*args)
 
 def parse_csv(filepath: str, game: au.Game) -> List[au.Registration]:
     """
@@ -46,7 +62,7 @@ def parse_csv(filepath: str, game: au.Game) -> List[au.Registration]:
                 # verify all required headings present
                 missing_headings = [h for h in required_headings if h not in head]
                 if len(missing_headings) > 0:
-                    raise MissingHeadingsError(f"CSV file is missing headings {', '.join(missing_headings)}",
+                    raise MissingHeadingsError(f"CSV file is missing the following headings: {', '.join(missing_headings)}",
                                                missing_headings=missing_headings)
             # rest of rows are entries
             else:
@@ -65,22 +81,14 @@ def parse_csv(filepath: str, game: au.Game) -> List[au.Registration]:
     return registrations
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("filepath", help="The path of the CSV file to load.", type=str)
-
-    parser.add_argument("-s", "--save", help="Include this flag to skip confirmation of adding loaded players",
-                        action='store_true')
-    parser.add_argument("-g", "--game", help="The name of the game to load the CSV into.",
-                        type=str)
-    args = parser.parse_args()
-
     def callback(game: au.Game):
         regs = parse_csv(filepath=args.filepath, game=game)
         print("Successfully loaded the following registrations:")
         [print(r) for r in regs]
-        resp = input(f"Enter Y to add these registrations to game {game.name}? ").upper()
-        if resp == "Y":
+        if not args.save:
+            resp = input(f"Enter Y to add these registrations to game {game.name}? ").upper()
+
+        if args.save or resp == "Y":
             for reg in regs:
                 game.add_player_from_reg(reg)
             game.session.commit()

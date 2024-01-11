@@ -26,15 +26,15 @@ class Player(Base):
     """
 
     __tablename__ = "players"
-    __table_args__ = (ForeignKeyConstraint(["reg_id", "game_id"], [Registration.id, Registration.game_id]),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     type: Mapped[str]
 
     reg_id: Mapped[int] = mapped_column(ForeignKey(Registration.id))
-    game_id: Mapped[int] = mapped_column(ForeignKey(Registration.game_id))
+    reg: Mapped[Registration] = relationship(foreign_keys=[reg_id])
 
-    reg: Mapped[Registration] = relationship(foreign_keys=[reg_id, game_id])
+    game_id: Mapped[int] = mapped_column(ForeignKey("games.id"))
+    game: Mapped["Game"] = relationship(back_populates="players")
 
     pseudonyms: Mapped[List["Pseudonym"]] = relationship(back_populates="owner",foreign_keys="[Pseudonym.owner_id]")
 

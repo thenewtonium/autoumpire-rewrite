@@ -11,11 +11,10 @@ class NiceEnum(Enum):
     Base enum class with a nicer __repr__ function
     """
     def __repr__(self) -> str:
-        """
-        :return: the value of the enum instance
-        """
         return self.value
 
+    def __str__(self) -> str:
+        return self.value
 
 class RegType(NiceEnum):
     """

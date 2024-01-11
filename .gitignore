@@ -152,3 +152,4 @@ cython_debug/
 #.idea/
 !/au_core/config.json
 !/au_core/config.json
+!/au_core/config.json

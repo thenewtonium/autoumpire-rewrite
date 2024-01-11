@@ -5,11 +5,17 @@ Defines the ORM model `Registration` representing initial player registrations.
 """
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship, deferred, Session
-from sqlalchemy import ForeignKey, select
+from sqlalchemy import ForeignKey, select, UniqueConstraint
 from .Base import Base
 from .enums import RegType, College, WaterStatus
+from .config import config
 from email_validator import validate_email, EmailNotValidError
 from warnings import warn
+
+# imports for sending emails
+from smtplib import SMTP
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 class DuplicateWarning(Warning):
     """
@@ -43,6 +49,8 @@ class Registration(Base):
         (may want to add `seed` for more intelligent targetting, and `discord_id` for discord integration)
     """
     __tablename__ = "registrations"
+    __table_args__ = (UniqueConstraint("game_id", "initial_pseudonym"),)
+
     id: Mapped[int] = mapped_column(primary_key=True)
     game_id = deferred(mapped_column(ForeignKey("games.id")))
 
@@ -55,15 +63,35 @@ class Registration(Base):
 
     # other signup data
     email: Mapped[str]
-    initial_pseudonym: Mapped[str] = mapped_column(unique=True)
+    initial_pseudonym: Mapped[str] # unique per game (see __table_args__)
     type: Mapped[RegType]
 
     # related objects
     game: Mapped["Game"] = relationship(back_populates="registrations")
 
-    #def __repr__(self) -> str:
-    #    return (f"Registration(id={self.id},game_id={self.game_id},type={self.type},realname={self.realname},college={self.college},"
-    #            f"address={self.address},notes={self.notes},email={self.email},initial_pseudonym={self.initial_pseudonym})")
+    # TODO: separate default subject into a config option & game setting
+    # TODO: (much much later...) discord integration
+    def send_email(self, body: str, subject: str = "Assassins' Guild Update", mimetype: str = "text"):
+        """
+        Sends an email to this registration.
+        :param body: Body of the email to send
+        :param subject: Subject of the email to send (defaults to `Assassins Update`)
+        :param mimetype: MIME type of the body (defaults to `text`)
+        :return:
+        """
+        # prepare the email
+        message = MIMEMultipart()
+        message['Subject'] = subject
+        message['From'] = config["email"]["from"]
+        message['To'] = self.email
+        message.attach(MIMEText(body, mimetype))
+        msg = message.as_string()
+
+        # send the email with SMTP
+        with SMTP(host=config["email"]["host"], port=config["email"]["port"]) as server:
+            server.starttls()
+            server.login(config["email"]["username"], config["email"]["password"])
+            server.sendmail(config["email"]["from"], self.email, msg)
 
     def validate(self, enforce_unique_email: bool = True):
         """

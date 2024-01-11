@@ -12,6 +12,8 @@ from .db import db
 from .Base import Base
 from .Game import Game
 from .Registration import Registration
+from .Player import Player
+from .Assassin import Assassin
 
 # registers tables for all the ORM models derived from Base
 Base.metadata.create_all(db)

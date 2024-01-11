@@ -6,8 +6,9 @@ Also implements most of the game logic as methods of this class.
 """
 
 import random
+import concurrent.futures
 from typing import List, TYPE_CHECKING
-from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
+from sqlalchemy.orm import Mapped, mapped_column, relationship, WriteOnlyMapped
 from sqlalchemy import select, func, and_, or_
 from .enums import RegType
 from .Base import Base
@@ -19,6 +20,7 @@ from .Pseudonym import Pseudonym
 from .TargRel import TargRel
 from .config import config
 from datetime import datetime, timezone, timedelta
+from warnings import warn
 
 class LiveGameError(Exception):
     """
@@ -49,14 +51,11 @@ class Game(Base):
     locale: Mapped[str] = mapped_column(default=config["locale"])
 
     # back-populated lists
-    registrations: Mapped[List["Registration"]] = relationship(back_populates="game")
-    players: Mapped[List["Player"]] = relationship(back_populates="game")
-    assassins: Mapped[List["Assassin"]] = relationship(back_populates="game",overlaps="players")
+    registrations: WriteOnlyMapped[List["Registration"]] = relationship(back_populates="game")
+    players: WriteOnlyMapped[List["Player"]] = relationship(back_populates="game")
+    assassins: WriteOnlyMapped[List["Assassin"]] = relationship(back_populates="game",overlaps="players")
 
-    #def __repr__(self) -> str:
-    #    return f"Game(id={self.id},name={self.name},live={self.live})"
-
-    # game logic
+    #### game logic
     
     def delete(self):
         """
@@ -66,6 +65,7 @@ class Game(Base):
 
         if not self.live:
             session.delete(self)
+            # TODO: set relationship to delete orphans automatically
             # delete orphaned registrations
             for reg in self.registrations:
                 session.delete(reg)
@@ -132,6 +132,7 @@ class Game(Base):
                 .scalar_subquery()
         )
 
+        # TODO: use WriteOnlyCollection `assassins` to generate query
         # fetch all alive assassins in this game with fewer than `n_targs` targets
         need_targs = session.scalars(select(Assassin.id)
                                      .filter_by(alive=True, game_id=self.id)
@@ -189,12 +190,35 @@ class Game(Base):
             pass
 
     def start(self):
+        """
+        Starts the game of assassins -- i.e. gives initial competence, and assigns initial targets.
+        Does not email players, in case of mistake -- the Game.send_updates method should be invoked seperately for this.
+        """
         session = self.session
         assassins = session.scalars(select(Assassin).filter_by(game_id=self.id))
 
-        # set initial competence
-        for assassin in assassins:
-            assassin.competence_deadline = datetime.now(timezone.utc) + self.initial_competence
+        # CONCURRENTLY set initial competence
+        # TODO: use sqlalchemy insert?
+        inital_deadline = datetime.now(timezone.utc) + self.initial_competence
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(lambda a: setattr(a, "competence_deadline", inital_deadline), assassins)
 
         # assign initial targets
         self.assign_targets()
+
+        # mark as live
+        self.live = True
+
+    def send_updates(self, message: str = ""):
+        """
+        :param message: The message body to send along with the updates.
+        """
+        session = self.session
+
+        # fetch alive assassins in the game
+        assassins = session.scalars(self.assassins.select().filter_by(alive=True))
+
+        # concurrently call the send_update method of each live assassin
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(lambda a: a.send_update(message), assassins)
+

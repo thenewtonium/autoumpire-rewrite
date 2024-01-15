@@ -53,7 +53,9 @@ class Game(Base):
     # back-populated lists
     registrations: WriteOnlyMapped[List["Registration"]] = relationship(back_populates="game")
     players: WriteOnlyMapped[List["Player"]] = relationship(back_populates="game")
-    assassins: WriteOnlyMapped[List["Assassin"]] = relationship(back_populates="game",overlaps="players")
+    assassins: WriteOnlyMapped[List["Assassin"]] = relationship(back_populates="game", overlaps="players")
+
+    events: WriteOnlyMapped[List["Event"]] = relationship(back_populates="game")
 
     #### game logic
     

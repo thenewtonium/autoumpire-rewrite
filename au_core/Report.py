@@ -29,11 +29,13 @@ class Report(Base):
     __tablename__ = "reports"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    # TODO: programmatic default as fallback
-    datetimestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     event_id = mapped_column(ForeignKey(Event.id))
     author_id = mapped_column(ForeignKey(Pseudonym.id))
     body: Mapped[str]
+
+    # TODO: programmatic default as fallback
+    # (only used internally for ordering of reports)
+    datetimestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     event: Mapped[Event] = relationship(back_populates="reports")
     author: Mapped[Pseudonym] = relationship()

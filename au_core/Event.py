@@ -59,6 +59,15 @@ class Event(Base):
             ]
         ).strip()
 
+    def plaintext_parsed_full(self) -> str:
+        """
+        :return: A plaintext form of the whole event including reports.
+        """
+        return  f"---\n{self.plaintext_parsed_headline()}\n---\n"\
+                + "\n\n\n".join([f"{x.author.text} writes\n{x.body}" for x in self.reports]) \
+                + "\n---"
+
+
 # TODO: allow escaping?
 # regex pattern for identifying pseudonym/player references in texts
 ref_capture_pattern = re.compile(r"(<[@#]\d+>)")
@@ -94,18 +103,32 @@ def _convert_ref(ref: str, session: Session) -> Union[str, Pseudonym]:
         return ref
 
 # TODO: change to use Game object
-def parse_refs(text: str, session: Session) -> List[Union[str,Pseudonym]]:
+def parse_refs(text: str, session: Session) -> List[Union[str,Pseudonym,Player]]:
     """
     Parses a text with references to pseudonyms in the form <@xxxxx> into a list of strings and Pseudonym objects,
     where the Pseudonym objects "take the place" of the <@xxxxx>'s in the original text.
     :param text: Text with pseudonym references
     :param session: The sqlalchemy Session to use to parse the pseudonyms
     :return: List representing the text, with references of the form <@xxxxx> where xxxxx is an integer
-    (of any number of digits) replaced by Pseudonym objects corresponding to the pseudonym with id xxxxx.
+    (of any number of digits) replaced by Pseudonym objects corresponding to the pseudonym with id xxxxx,
+    and references of the form <#xxxxx> replaced by Player objects corresponding to the player with id xxxxx.
     """
     # split text by references, keeping the 'separators'
     l = re.split(ref_capture_pattern, text)
 
     # convert each of the references into Pseudonym or Player objects
     return [_convert_ref(s, session) for s in l]
+
+def plaintext_from_parsed_refs(parsed: List[Union[str,Pseudonym,Player]]) -> str:
+    """
+    Turns the output of `parsed_refs` into a string.
+    :param parsed:
+    :return:
+    """
+    return "".join(
+            [x.text if isinstance(x, Pseudonym)
+                else " AKA ".join([y.text for y in x.pseudonyms]) + f" ({x.reg.realname})" if isinstance(x,Player)
+                else x
+             for x in parsed
+            ])
 

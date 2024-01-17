@@ -14,6 +14,7 @@ from .Game import Game
 from .Registration import Registration
 from .Player import Player
 from .Assassin import Assassin
+from .Pseudonym import Pseudonym
 from .Event import Event
 from .Report import Report
 

@@ -15,7 +15,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--save", help="Include this flag to skip confirmation of adding loaded players",
                         action='store_true')
     parser.add_argument("-g", "--game", help="The name of the game to load the CSV into.",
-                        type=str)
+                        type=str, required=True)
     args = parser.parse_args()
 
 # some nonsense to allow us to import from the above directory
@@ -25,7 +25,7 @@ sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
 
 import csv
 import au_core as au
-from typing import List, Optional
+from typing import List
 from warnings import warn
 
 required_headings = ["realname", "email", "initial_pseudonym", "college", "address", "water", "notes", "type"]

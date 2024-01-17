@@ -42,3 +42,9 @@ class Player(Base):
         "polymorphic_identity": "player",
         "polymorphic_on": "type",
     }
+
+    def reference(self) -> str:
+        """
+        :return: The text form of a reference to this player, to be used in Event headlines WHEN THE PLAYER DIES.
+        """
+        return f"<#{self.id}>"

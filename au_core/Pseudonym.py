@@ -34,3 +34,9 @@ class Pseudonym(Base):
 
     owner_id: Mapped[int] = mapped_column(ForeignKey(Player.id))
     owner: Mapped[Player] = relationship(back_populates="pseudonyms",foreign_keys="[Pseudonym.owner_id,Pseudonym.game_id]")
+
+    def reference(self) -> str:
+        """
+        :return: The text form of a reference to this pseudonym, to be used in Event headlines and Reports.
+        """
+        return f"<@{self.id}>"

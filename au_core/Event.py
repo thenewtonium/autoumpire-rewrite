@@ -5,16 +5,13 @@ Defines the `Event` class.
 """
 
 import re
-from typing import List, Union, TYPE_CHECKING
+from typing import List, Union
 from sqlalchemy import ForeignKey, DateTime
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
 from .Base import Base
 from .Pseudonym import Pseudonym
+from .Player import Player
 from datetime import datetime
-
-if TYPE_CHECKING:
-    from .Game import Game
-    from sqlalchemy.orm import Session
 
 class Event(Base):
     """
@@ -39,7 +36,7 @@ class Event(Base):
     datetimestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     game_id = mapped_column(ForeignKey("games.id"))
 
-    game: Mapped[Game] = relationship(back_populates="events")
+    game: Mapped["Game"] = relationship(back_populates="events")
     reports: Mapped[List["Report"]] = relationship(back_populates="event", order_by="Report.datetimestamp")
 
     def parsed_headline(self) -> List[Union[str, Pseudonym]]:
@@ -47,37 +44,57 @@ class Event(Base):
         :return: Parsed form of this Event's headline -- i.e. a list of strings and Pseudonym objects representing this
         Event's headline with references to pseudonyms substituted for Pseudonym objects
         """
-        return parse_pseudonym_refs(self.headline, self.session)
+        return parse_refs(self.headline, self.session)
+
+    def plaintext_parsed_headline(self) -> str:
+        """
+        :return: This Event's headline with pseudonym references replaced by the text of the pseudonyms
+        """
+        return f"[{self.datetimestamp}] "\
+               + "".join(
+            [x.text if isinstance(x, Pseudonym)
+                else " AKA ".join([y.text for y in x.pseudonyms]) + f" ({x.reg.realname})" if isinstance(x,Player)
+                else x
+             for x in self.parsed_headline()
+            ]
+        ).strip()
 
 # TODO: allow escaping?
-# regex pattern for identifying pseudonym references in texts
-pseudonym_ref_capture_pattern = re.compile(r"(<@\d+>)")
-# regex pattern for extracting the id of the pseudonym from a pseudonym reference
-pseudonym_id_capture_pattern = re.compile(r"<@(\d+)>")
+# regex pattern for identifying pseudonym/player references in texts
+ref_capture_pattern = re.compile(r"(<[@#]\d+>)")
+# regex pattern for extracting the id of the pseudonym/player from a reference
+parsing_pattern = re.compile(r"<([@#])(\d+)>")
 
-def _convert_pseudonym_ref(ref: str, session: Session) -> Union[str, Pseudonym]:
+def _convert_ref(ref: str, session: Session) -> Union[str, Pseudonym]:
     """
     Helper function for parse_pseudonym_refs.
-    This converts a pseudonym reference into a Pseudonym object if the reference is valid,
+    This converts a reference into a Pseudonym or Player object if the reference is valid,
     otherwise it returns the original string.
-    :param ref: String reference to a pseudonym
+    :param ref: String reference to a pseudonym or player
     :param game: The sqlalchemy Session to
-    :return: Pseudonym object corresponding to the referenced pseudonym, if valid, else the original string.
+    :return: Pseudonym or Player object corresponding to the referenced pseudonym or player, if valid,
+    else the original string.
     """
-    m = re.match(pseudonym_id_capture_pattern, str)
+    m = re.match(parsing_pattern, ref)
 
     # return original string if not a valid pseudonym reference
     if m is None:
         return ref
 
+    # extract "type marker" capture group from match
+    type = m.group(1)
     # extract id capture group from match
-    id = int(m.group(1))
+    id = int(m.group(2))
 
-    # fetch the Pseudonym object by id
-    return session.get(Pseudonym, id)
+    if type == "@":
+        return session.get(Pseudonym, id)
+    elif type == "#":
+        return session.get(Player, id)
+    else:
+        return ref
 
 # TODO: change to use Game object
-def parse_pseudonym_refs(text: str, session: Session) -> List[Union[str,Pseudonym]]:
+def parse_refs(text: str, session: Session) -> List[Union[str,Pseudonym]]:
     """
     Parses a text with references to pseudonyms in the form <@xxxxx> into a list of strings and Pseudonym objects,
     where the Pseudonym objects "take the place" of the <@xxxxx>'s in the original text.
@@ -86,8 +103,9 @@ def parse_pseudonym_refs(text: str, session: Session) -> List[Union[str,Pseudony
     :return: List representing the text, with references of the form <@xxxxx> where xxxxx is an integer
     (of any number of digits) replaced by Pseudonym objects corresponding to the pseudonym with id xxxxx.
     """
-    # split text by pseudonym references, keeping the 'separators'
-    l = re.split(pseudonym_ref_capture_pattern, text)
+    # split text by references, keeping the 'separators'
+    l = re.split(ref_capture_pattern, text)
 
-    return [_convert_pseudonym_ref(s, session) for i, s in enumerate(l) if l % 2 == 1]
+    # convert each of the references into Pseudonym or Player objects
+    return [_convert_ref(s, session) for s in l]
 

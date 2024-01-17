@@ -10,7 +10,7 @@ from sqlalchemy import ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 from .Pseudonym import Pseudonym
-from .Event import Event, parse_pseudonym_refs
+from .Event import Event, parse_refs
 from datetime import datetime
 
 class Report(Base):
@@ -31,8 +31,8 @@ class Report(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     # TODO: programmatic default as fallback
     datetimestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    event_id = ForeignKey(Event.id)
-    author_id = ForeignKey(Pseudonym.id)
+    event_id = mapped_column(ForeignKey(Event.id))
+    author_id = mapped_column(ForeignKey(Pseudonym.id))
     body: Mapped[str]
 
     event: Mapped[Event] = relationship(back_populates="reports")
@@ -43,4 +43,4 @@ class Report(Base):
         :return: Parsed form of this Report's body -- i.e. a list of strings and Pseudonym objects representing this
         Report's body with references to pseudonyms substituted for Pseudonym objects
         """
-        return parse_pseudonym_refs(self.body, self.session)
+        return parse_refs(self.body, self.session)

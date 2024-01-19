@@ -1,0 +1,25 @@
+{# TODO: add anchor link to news page #}
+{# TODO: randomise dead player colours #}
+
+{% for e in events %}
+{% if not loop.previtem or e.datetimestamp.day != loop.previtem.datetimestamp.day %}
+<h3>{{ e.datetimestamp.strftime("%A, %d %B") }}</h3>
+{% endif %}
+<div class="event">
+    [{{ e.datetimestamp.strftime("%I:%M %p") }}]
+    <span class="headline">
+        {% for part in e.parsed_headline() -%}
+            {%- if part.type == "pseudonym" -%}
+                <span class="{{part.value.colour}}">{{ part.value.text }}</span>
+            {%- elif part.type == "player" -%}
+                <span class="colourdead1">
+                    {{- part.value.pseudonyms | join("</span> AKA <span class=\"colourdead1\">", attribute="text") -}}
+                </span> (<span class="colourdead1">{{ part.value.reg.realname }}</span>)
+            {%- else -%}
+                {#- note that current parsing leaves strings be -#}
+                {{ part }}
+            {%- endif -%}
+        {%- endfor %}
+    </span>
+</div>
+{% endfor %}

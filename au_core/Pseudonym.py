@@ -40,3 +40,5 @@ class Pseudonym(Base):
         :return: The text form of a reference to this pseudonym, to be used in Event headlines and Reports.
         """
         return f"<@{self.id}>"
+
+    # TODO: HTML formatting function using a template

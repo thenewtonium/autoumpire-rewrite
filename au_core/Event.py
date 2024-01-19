@@ -39,6 +39,8 @@ class Event(Base):
     game: Mapped["Game"] = relationship(back_populates="events")
     reports: Mapped[List["Report"]] = relationship(back_populates="event", order_by="Report.datetimestamp")
 
+    # TODO: HTML-formatted headline using formatting functions in the Player and Pseudonym objects
+
     def parsed_headline(self) -> List[Union[str, Pseudonym]]:
         """
         :return: Parsed form of this Event's headline -- i.e. a list of strings and Pseudonym objects representing this
@@ -52,8 +54,8 @@ class Event(Base):
         """
         return f"[{self.datetimestamp}] "\
                + "".join(
-            [x.text if isinstance(x, Pseudonym)
-                else " AKA ".join([y.text for y in x.pseudonyms]) + f" ({x.reg.realname})" if isinstance(x,Player)
+            [x.value.text if x.type == "pseudonym"
+                else " AKA ".join([y.text for y in x.value.pseudonyms]) + f" ({x.reg.realname})" if x.type=="player"
                 else x
              for x in self.parsed_headline()
             ]
@@ -96,14 +98,15 @@ def _convert_ref(ref: str, session: Session) -> Union[str, Pseudonym]:
     id = int(m.group(2))
 
     if type == "@":
-        return session.get(Pseudonym, id)
+        return {"type":"pseudonym", "value": session.get(Pseudonym, id)}
     elif type == "#":
-        return session.get(Player, id)
+        return {"type":"player", "value": session.get(Player, id)}
     else:
         return ref
 
 # TODO: change to use Game object
 def parse_refs(text: str, session: Session) -> List[Union[str,Pseudonym,Player]]:
+    # TODO: update this docstring
     """
     Parses a text with references to pseudonyms in the form <@xxxxx> into a list of strings and Pseudonym objects,
     where the Pseudonym objects "take the place" of the <@xxxxx>'s in the original text.
@@ -126,9 +129,9 @@ def plaintext_from_parsed_refs(parsed: List[Union[str,Pseudonym,Player]]) -> str
     :return:
     """
     return "".join(
-            [x.text if isinstance(x, Pseudonym)
-                else " AKA ".join([y.text for y in x.pseudonyms]) + f" ({x.reg.realname})" if isinstance(x,Player)
-                else x
+            [x.value.text if x.type == "pseudonym"
+                else " AKA ".join([y.text for y in x.value.pseudonyms]) + f" ({x.value.reg.realname})" if x.type == "player"
+                else x.value
              for x in parsed
             ])
 

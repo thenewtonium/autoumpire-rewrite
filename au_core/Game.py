@@ -7,7 +7,7 @@ Also implements most of the game logic as methods of this class.
 
 import random
 import concurrent.futures
-from typing import List, TYPE_CHECKING
+from typing import List, Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship, WriteOnlyMapped
 from sqlalchemy import select, func, and_, or_
 from .enums import RegType
@@ -18,9 +18,19 @@ from .Assassin import Assassin
 from .Police import Police
 from .Pseudonym import Pseudonym
 from .TargRel import TargRel
+from .Event import Event
 from .config import config
 from datetime import datetime, timezone, timedelta
 from warnings import warn
+
+# setup for news pages generation from template
+from jinja2 import Environment, PackageLoader, select_autoescape
+from babel.dates import format_datetime
+env = Environment(
+    loader=PackageLoader('au_core', 'templates'),
+    autoescape=select_autoescape()
+)
+headlines_template = env.get_template("headlines.jinja")
 
 class LiveGameError(Exception):
     """
@@ -44,6 +54,7 @@ class Game(Base):
 
     # game state
     live: Mapped[bool] = mapped_column(default=False)
+    #started: Mapped[Optional[datetime]]
 
     # settings
     n_targs: Mapped[int] = mapped_column(default=config["n_targs"])
@@ -210,6 +221,7 @@ class Game(Base):
 
         # mark as live
         self.live = True
+        #self.started = datetime.now(timezone.utc)
 
     def send_updates(self, message: str = ""):
         """
@@ -224,3 +236,10 @@ class Game(Base):
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(lambda a: a.send_update(message), assassins)
 
+    def generate_headlines(self) -> str:
+        events = self.session.scalars(self.events.select().order_by(Event.datetimestamp))
+
+        return headlines_template.render(
+            classes={"Pseudonym":Pseudonym, "Player":Player},
+            events=events
+        )

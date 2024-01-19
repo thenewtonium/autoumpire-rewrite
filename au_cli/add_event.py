@@ -23,6 +23,7 @@ if __name__ == '__main__':
     from datetime import datetime
     import re
 
+    # TODO: use `datetime.strptime` for this?
     # regex expression for parsing the string datetimestamp
     m = re.match(r"(\d+)[-\./](\d+)[-\./](\d+)\s*(\d+)[:\.](\d+)",args.datetime)
     datetimestamp = datetime(year=int(m.group(1)),

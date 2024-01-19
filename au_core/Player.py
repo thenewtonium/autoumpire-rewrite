@@ -48,3 +48,6 @@ class Player(Base):
         :return: The text form of a reference to this player, to be used in Event headlines WHEN THE PLAYER DIES.
         """
         return f"<#{self.id}>"
+
+
+    # TODO: HTML formatting function using a template

@@ -30,6 +30,7 @@ class Pseudonym(Base):
     game_id: Mapped[int]# = mapped_column(ForeignKey(Player.game_id))
     text: Mapped[str]
 
+    # TODO: change to name to 'css_class' and type to to str
     colour: Mapped[PseudonymColour] = mapped_column(default=PseudonymColour.DEFAULT)
 
     owner_id: Mapped[int] = mapped_column(ForeignKey(Player.id))
@@ -41,4 +42,12 @@ class Pseudonym(Base):
         """
         return f"<@{self.id}>"
 
-    # TODO: HTML formatting function using a template
+    # TODO: add 'wanted' check when wanted list implemented
+    def HTML_render(self) -> str:
+        """
+        Uses the `pseudonym.jinja` template to create the HTML rendering of this pseudonym.
+        :return: The HTML code for the pseudonym
+        """
+        from .templates import env
+        template = env.get_template("pseudonym.jinja")
+        return template.render(pseudonym=self)

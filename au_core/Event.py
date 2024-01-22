@@ -41,34 +41,31 @@ class Event(Base):
 
     # TODO: HTML-formatted headline using formatting functions in the Player and Pseudonym objects
 
-    def parsed_headline(self) -> List[Union[str, Pseudonym]]:
+    def HTML_headline(self) -> str:
         """
-        :return: Parsed form of this Event's headline -- i.e. a list of strings and Pseudonym objects representing this
-        Event's headline with references to pseudonyms substituted for Pseudonym objects
+        :return: The HTML formatted headline of the event. (Not including datetimestamp)
         """
-        return parse_refs(self.headline, self.session)
+        return parse_refs_into_HTML(self.headline, self.session)
 
-    def plaintext_parsed_headline(self) -> str:
+    def plaintext_headline(self) -> str:
         """
-        :return: This Event's headline with pseudonym references replaced by the text of the pseudonyms
+        :return: The parsed plaintext headline of the event.
         """
-        return f"[{self.datetimestamp}] "\
-               + "".join(
-            [x.value.text if x.type == "pseudonym"
-                else " AKA ".join([y.text for y in x.value.pseudonyms]) + f" ({x.reg.realname})" if x.type=="player"
-                else x
-             for x in self.parsed_headline()
-            ]
-        ).strip()
+        return parse_refs_into_plaintext(self.headline, self.session)
 
-    def plaintext_parsed_full(self) -> str:
+    def plaintext_full(self) -> str:
         """
-        :return: A plaintext form of the whole event including reports.
+        :return: A plaintext form of the whole event including timestamp and reports.
         """
-        return  f"---\n{self.plaintext_parsed_headline()}\n---\n"\
+        return  "---\n"\
+                + f"[{datetime.strftime(self.datetimestamp, '%I:%M %p')}] {self.plaintext_parsed_headline()}\n"\
+                + "---\n"\
                 + "\n\n\n".join([f"{x.author.text} writes\n{x.body}" for x in self.reports]) \
                 + "\n---"
 
+# Below are functions for decoding and rendering headlines encoded with references to Pseudonyms and Players,
+# of the forms <@xxxx> and <#xxxx> respectively.
+# TODO: docstrings
 
 # TODO: allow escaping?
 # regex pattern for identifying pseudonym/player references in texts
@@ -98,40 +95,53 @@ def _convert_ref(ref: str, session: Session) -> Union[str, Pseudonym]:
     id = int(m.group(2))
 
     if type == "@":
-        return {"type":"pseudonym", "value": session.get(Pseudonym, id)}
+        return session.get(Pseudonym, id)
     elif type == "#":
-        return {"type":"player", "value": session.get(Player, id)}
+        return session.get(Player, id)
     else:
         return ref
 
 # TODO: change to use Game object
-def parse_refs(text: str, session: Session) -> List[Union[str,Pseudonym,Player]]:
-    # TODO: update this docstring
-    """
-    Parses a text with references to pseudonyms in the form <@xxxxx> into a list of strings and Pseudonym objects,
-    where the Pseudonym objects "take the place" of the <@xxxxx>'s in the original text.
-    :param text: Text with pseudonym references
-    :param session: The sqlalchemy Session to use to parse the pseudonyms
-    :return: List representing the text, with references of the form <@xxxxx> where xxxxx is an integer
-    (of any number of digits) replaced by Pseudonym objects corresponding to the pseudonym with id xxxxx,
-    and references of the form <#xxxxx> replaced by Player objects corresponding to the player with id xxxxx.
-    """
+def _parse_refs(text: str, session: Session) -> List[Union[str,Pseudonym,Player]]:
     # split text by references, keeping the 'separators'
     l = re.split(ref_capture_pattern, text)
 
     # convert each of the references into Pseudonym or Player objects
     return [_convert_ref(s, session) for s in l]
 
-def plaintext_from_parsed_refs(parsed: List[Union[str,Pseudonym,Player]]) -> str:
+def HTML_render(obj: Union[str, Pseudonym, Player]):
     """
-    Turns the output of `parsed_refs` into a string.
-    :param parsed:
-    :return:
+    Helper function that gives the HTML rendering of a Pseudonym of Player object, or a string.
+    For a Pseudonym, it wraps the text of the pseudonym in a <span> of the appropriate class.
+    For a Player, it lists the player's pseudonyms separated by "AKA", then gives their real name in brackets.
+    For a string, it simply reproduces the string.
+    :param obj: The object to render as HTML
+    :return: The appropriate HTML rendering of the object.
     """
-    return "".join(
-            [x.value.text if x.type == "pseudonym"
-                else " AKA ".join([y.text for y in x.value.pseudonyms]) + f" ({x.value.reg.realname})" if x.type == "player"
-                else x.value
-             for x in parsed
-            ])
+    if isinstance(obj, str):
+        return obj
+    elif isinstance(obj, Pseudonym):
+        return obj.HTML_render()
+    elif isinstance(obj, Player):
+        return obj.HTML_render()
+    else:
+        raise TypeError(f"HTML_render expected argument of type str, Pseudonym, or Player; received {type(obj)}")
+
+def parse_refs_into_HTML(text: str, session: Session):
+    parsed = _parse_refs(text, session)
+    return "".join( (HTML_render(x) for x in parsed))
+
+def plaintext_render(obj: Union[str, Pseudonym, Player]):
+    if isinstance(obj, str):
+        return obj
+    elif isinstance(obj, Pseudonym):
+        return obj.text
+    elif isinstance(obj, Player):
+        return " AKA ".join( (p.text for p in obj.pseudonyms) ) + f" ({obj.reg.realname})"
+    else:
+        raise TypeError(f"plaintext_render expected argument of type str, Pseudonym, or Player; received {type(obj)}")
+
+def parse_refs_into_plaintext(text: str, session: Session) -> str:
+    parsed = _parse_refs(text, session)
+    return "".join( (plaintext_render(x) for x in parsed) )
 

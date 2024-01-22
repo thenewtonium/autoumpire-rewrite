@@ -12,15 +12,6 @@ from sqlalchemy import ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 
-# setup for message generation from template
-from jinja2 import Environment, PackageLoader, select_autoescape
-from babel.dates import format_datetime
-env = Environment(
-    loader=PackageLoader('au_core', 'templates'),
-    autoescape=select_autoescape()
-)
-template = env.get_template("update-email.jinja")
-
 class Assassin(Player):
     """
     Assassin class
@@ -49,6 +40,9 @@ class Assassin(Player):
     }
 
     def send_update(self, body: str = ""):
+        from .templates import env
+        from babel.dates import format_datetime
+        template = env.get_template("update-email.jinja")
         message = template.render(player=self.reg,
                                   message=body,
                                   targets=[t.reg for t in self.targets],

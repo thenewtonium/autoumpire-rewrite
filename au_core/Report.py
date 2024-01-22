@@ -10,7 +10,7 @@ from sqlalchemy import ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 from .Pseudonym import Pseudonym
-from .Event import Event, parse_refs
+from .Event import Event, parse_refs_into_HTML, parse_refs_into_plaintext
 from datetime import datetime
 
 class Report(Base):
@@ -40,9 +40,14 @@ class Report(Base):
     event: Mapped[Event] = relationship(back_populates="reports")
     author: Mapped[Pseudonym] = relationship()
 
-    def parsed_body(self) -> List[Union[str, Pseudonym]]:
+    def HTML_body(self) -> str:
         """
-        :return: Parsed form of this Report's body -- i.e. a list of strings and Pseudonym objects representing this
-        Report's body with references to pseudonyms substituted for Pseudonym objects
+        :return: The HTML-formatted body of this report.
         """
-        return parse_refs(self.body, self.session)
+        return parse_refs_into_HTML(self.body)
+
+    def plaintext_body(self):
+        """
+        :return: The parsed plaintext body of this report.
+        """
+        return parse_refs_into_plaintext(self.body)

@@ -24,13 +24,7 @@ from datetime import datetime, timezone, timedelta
 from warnings import warn
 
 # setup for news pages generation from template
-from jinja2 import Environment, PackageLoader, select_autoescape
-from babel.dates import format_datetime
-env = Environment(
-    loader=PackageLoader('au_core', 'templates'),
-    autoescape=select_autoescape()
-)
-headlines_template = env.get_template("headlines.jinja")
+
 
 class LiveGameError(Exception):
     """
@@ -160,8 +154,10 @@ class Game(Base):
 
         #cont = False # whether to continue - will be set to True later iff need_targs is nonempty
         # TODO: make this require girth-3
-        # TODO: also, have temporary store of problematic choices so that we don't keep picking them
+        # TODO: also, have temporary store of problematic choices so that we don't keep picking them,
+        #  and if we run out of choices we can 're-roll'
         to_add = []
+        print(need_targs)
         for a in need_targs:
             #cont = True
             ok = False
@@ -177,7 +173,7 @@ class Game(Base):
                                       .where(
                     or_(
                         and_(TargRel.assassin_id == a, TargRel.target_id == t),
-                        and_(TargRel.assassin_id == t, TargRel.target_id == a)
+                        #and_(TargRel.assassin_id == t, TargRel.target_id == a)
                     )
                                         )
                 ).one_or_none()
@@ -237,9 +233,8 @@ class Game(Base):
             executor.map(lambda a: a.send_update(message), assassins)
 
     def generate_headlines(self) -> str:
-        events = self.session.scalars(self.events.select().order_by(Event.datetimestamp))
+        from .templates import env
+        template = env.get_template("headlines.jinja")
 
-        return headlines_template.render(
-            classes={"Pseudonym":Pseudonym, "Player":Player},
-            events=events
-        )
+        events = self.session.scalars(self.events.select().order_by(Event.datetimestamp))
+        return template.render(events=events)

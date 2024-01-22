@@ -45,7 +45,7 @@ if __name__ == "__main__":
         game.events.add(new_event)
 
         print("Type Y to confirm adding the following event:")
-        print(new_event.plaintext_parsed_headline())
+        print(new_event.plaintext_headline())
         resp = input().upper()
         if resp == "Y":
             game.session.commit()

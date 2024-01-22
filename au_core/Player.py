@@ -49,5 +49,13 @@ class Player(Base):
         """
         return f"<#{self.id}>"
 
-
-    # TODO: HTML formatting function using a template
+    def HTML_render(self) -> str:
+        """
+        Uses the `dead-player.jinja` template to create the HTML rendering of this player,
+        to be used in headlines when they die,
+        which reveals all their real name, and all their pseudonyms separated by AKA
+        :return: The HTML code for the player to be used in headlines when they die.
+        """
+        from .templates import env
+        template = env.get_template("dead-player.jinja")
+        return template.render(player=self)

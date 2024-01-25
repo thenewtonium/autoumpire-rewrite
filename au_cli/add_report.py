@@ -39,7 +39,7 @@ if __name__ == "__main__":
         event.reports.append(new_report)
 
         print(f"Updated event (id={args.event}) now as follows:")
-        print(event.plaintext_parsed_full())
+        print(event.plaintext_full())
         resp = input("Enter Y to confirm addition of report: ").upper()
         if resp == "Y":
             session.commit()

@@ -9,7 +9,7 @@ import random
 import concurrent.futures
 from typing import List, Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship, WriteOnlyMapped
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import select, func, and_, or_, ScalarResult
 from .enums import RegType
 from .Base import Base
 from .Registration import Registration
@@ -48,7 +48,7 @@ class Game(Base):
 
     # game state
     live: Mapped[bool] = mapped_column(default=False)
-    #started: Mapped[Optional[datetime]]
+    started: Mapped[Optional[datetime]]
 
     # settings
     n_targs: Mapped[int] = mapped_column(default=config["n_targs"])
@@ -56,11 +56,11 @@ class Game(Base):
     locale: Mapped[str] = mapped_column(default=config["locale"])
 
     # back-populated lists
-    registrations: WriteOnlyMapped[List["Registration"]] = relationship(back_populates="game")
-    players: WriteOnlyMapped[List["Player"]] = relationship(back_populates="game")
-    assassins: WriteOnlyMapped[List["Assassin"]] = relationship(back_populates="game", overlaps="players")
+    registrations: WriteOnlyMapped[List["Registration"]] = relationship(back_populates="game", cascade="all, delete")
+    players: WriteOnlyMapped[List["Player"]] = relationship(back_populates="game", cascade="all, delete")
+    assassins: WriteOnlyMapped[List["Assassin"]] = relationship(back_populates="game", overlaps="players", cascade="all, delete")
 
-    events: WriteOnlyMapped[List["Event"]] = relationship(back_populates="game")
+    events: WriteOnlyMapped[List["Event"]] = relationship(back_populates="game", cascade="all, delete")
 
     #### game logic
     
@@ -100,24 +100,6 @@ class Game(Base):
         session.add(newpseudonym)
 
         return newplayer
-
-
-    # TODO: perhaps remove this
-    def add_registration(self, **info) -> Registration:
-        """
-        Register a player in the game, validating the data.
-
-        :param info: Keyword arguments are passed into the constructor for the Registration
-        :return: The Registration of the player just registered.
-        """
-        session = self.session
-
-        newreg = Registration(game=self, **info)
-        newreg.validate_w_session(session)
-        session.add(newreg)
-        #session.commit()
-
-        return newreg
 
     def _assign_targets_one_pass(self) -> bool:
         """
@@ -217,7 +199,7 @@ class Game(Base):
 
         # mark as live
         self.live = True
-        #self.started = datetime.now(timezone.utc)
+        self.started = datetime.now(timezone.utc)
 
     def send_updates(self, message: str = ""):
         """
@@ -238,3 +220,22 @@ class Game(Base):
 
         events = self.session.scalars(self.events.select().order_by(Event.datetimestamp))
         return template.render(events=events)
+
+    def events_in_week(self, week_n: int) -> ScalarResult[Event]:
+        """
+        :param week_n: The week number to query events in.
+        :return: The result of querying Event objects whose datetimestamp falls in week_n
+        """
+        d = self.started
+        upper_bound = datetime(year=d.year, month=d.month, day=d.day) + timedelta(weeks=week_n)
+        lower_bound = upper_bound - timedelta(weeks=1)
+
+        return self.session.scalars( self.events.select().where(
+            and_(lower_bound <= Event.datetimestamp, Event.datetimestamp < upper_bound)
+        ))
+
+    def generate_news_page(self, week_n) -> str:
+        from .templates import env
+        template = env.get_template("news.jinja")
+
+        return template.render(events=self.events_in_week(week_n), week_n=week_n)

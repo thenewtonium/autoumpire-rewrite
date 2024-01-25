@@ -6,7 +6,7 @@ Defines the `Event` class.
 
 import re
 from typing import List, Union
-from sqlalchemy import ForeignKey, DateTime
+from sqlalchemy import ForeignKey, DateTime, and_
 from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
 from .Base import Base
 from .Pseudonym import Pseudonym
@@ -39,6 +39,12 @@ class Event(Base):
     game: Mapped["Game"] = relationship(back_populates="events")
     reports: Mapped[List["Report"]] = relationship(back_populates="event", order_by="Report.datetimestamp")
 
+    def week(self) -> int:
+        """
+        :return: The week number in which this event occurred
+        """
+        return 1 + (self.datetimestamp.date() - self.game.started.date()).days // 7
+
     # TODO: HTML-formatted headline using formatting functions in the Player and Pseudonym objects
 
     def HTML_headline(self) -> str:
@@ -58,9 +64,9 @@ class Event(Base):
         :return: A plaintext form of the whole event including timestamp and reports.
         """
         return  "---\n"\
-                + f"[{datetime.strftime(self.datetimestamp, '%I:%M %p')}] {self.plaintext_parsed_headline()}\n"\
+                + f"[{datetime.strftime(self.datetimestamp, '%I:%M %p')}] {self.plaintext_headline()}\n"\
                 + "---\n"\
-                + "\n\n\n".join([f"{x.author.text} writes\n{x.body}" for x in self.reports]) \
+                + "\n\n\n".join([f"{x.author.text} writes\n{x.plaintext_body()}" for x in self.reports]) \
                 + "\n---"
 
 # Below are functions for decoding and rendering headlines encoded with references to Pseudonyms and Players,

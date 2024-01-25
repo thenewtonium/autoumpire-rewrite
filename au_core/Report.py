@@ -44,10 +44,10 @@ class Report(Base):
         """
         :return: The HTML-formatted body of this report.
         """
-        return parse_refs_into_HTML(self.body)
+        return parse_refs_into_HTML(self.body, self.session)
 
     def plaintext_body(self):
         """
         :return: The parsed plaintext body of this report.
         """
-        return parse_refs_into_plaintext(self.body)
+        return parse_refs_into_plaintext(self.body, self.session)

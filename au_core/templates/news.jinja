@@ -1,0 +1,27 @@
+<h2>Week {{ week_n }} News</h2>
+{% for e in events %}
+{% if not loop.previtem or e.datetimestamp.day != loop.previtem.datetimestamp.day %}
+<h3>{{ e.datetimestamp.strftime("%A, %d %B") }}</h3>
+{% endif %}
+<div class="event">
+    <hr />
+    <span id="e{{ e.id }}">
+        [{{ e.datetimestamp.strftime("%I:%M %p") }}]
+        <span class="headline">
+            {{ e.HTML_headline() }}
+        </span>
+    </span>
+    <hr />
+    {% for r in e.reports %}
+    <div class="report">
+        {{ r.author.HTML_render() | safe}} writes:
+        <br />
+        <div class="indent">
+            <div class="{{r.author.colour}}">
+                {{ r.HTML_body() | safe }}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endfor %}

@@ -6,7 +6,7 @@ This module implements the core logic of AutoUmpire.
 
 from .enums import *
 from .config import config
-from .db import db
+import db
 
 # ORM class imports
 from .Base import Base
@@ -19,12 +19,13 @@ from .Event import Event
 from .Report import Report
 
 # registers tables for all the ORM models derived from Base
-Base.metadata.create_all(db)
+Base.metadata.create_all(db.engine)
 
 # module-level functions
 from typing import Optional, Union, Callable, Any, TYPE_CHECKING
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 
 class GameNotFoundError(Exception):
@@ -82,7 +83,7 @@ def callback_on_game(identifier: Union[int, str], callback: Callable[[Game], Any
     :param autocommit: Whether to commit the database session after (successfully) running `callback`. Defaults to `False`.
     :return: The return value of `callback` run on the fetched game
     """
-    with Session(db) as session:
+    with db.Session() as session:
         if type(identifier) is int:
             game = fetch_game_w_session(session, id=identifier)
         elif type(identifier) is str:
@@ -137,7 +138,7 @@ def create_game_then_callback(name: str, callback: Callable[[Game], Any] = lambd
     Defaults to `True` as I can't really see a use case for having this set to `False`.
     :return: The return value of `callback` when run on the created Game
     """
-    with Session(db) as session:
+    with db.Session() as session:
         game = create_game_w_session(session, name)
         ret = callback(game)
         if autocommit:

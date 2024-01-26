@@ -17,8 +17,6 @@ if __name__ == '__main__':
     parser.add_argument("-e", "--event",
                         help="The id of the event to attach the report to.",
                         type=int, required=True)
-    parser.add_argument("-g", "--game", help="The name of the game in which the event occurred..",
-                        type=str, required=True)
     args = parser.parse_args()
 
 # some nonsense to allow us to import from the above directory
@@ -29,9 +27,7 @@ sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
 import au_core as au
 
 if __name__ == "__main__":
-    def callback(game: au.Game):
-        session = game.session
-
+    with au.db.Session() as session:
         event = session.get(au.Event, args.event)
         author = session.get(au.Pseudonym, args.author)
 
@@ -47,7 +43,3 @@ if __name__ == "__main__":
         else:
             print("Did not add report.")
             session.rollback()
-    try:
-        au.callback_on_game(args.game, callback, autocommit=False)
-    except au.GameNotFoundError:
-        print(f"Error: no game found with name {args.game}.")

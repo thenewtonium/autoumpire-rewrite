@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     parser.add_argument("-w", "--week", help="The week to generate headlines for",
                         type=int)
-    parser.add_argument("game", help="The name of the game to generate headlines for.",
+    parser.add_argument("-g", "--game", help="The name of the game to generate headlines for.",
                         type=str)
     args = parser.parse_args()
 

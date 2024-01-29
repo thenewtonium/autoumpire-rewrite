@@ -8,8 +8,10 @@ and which the Assassin and Police classes inherit from as "types" of players.
 from typing import List
 from .Base import Base
 from .Registration import Registration
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKeyConstraint, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship, load_only
+from sqlalchemy import ForeignKeyConstraint, ForeignKey, select
+from datetime import datetime
+from .Death import Death
 
 # TODO: uniqueness constraint on reg_id + type? I.e. only one instance of each TYPE of player per person
 class Player(Base):
@@ -43,19 +45,33 @@ class Player(Base):
         "polymorphic_on": "type",
     }
 
-    def reference(self) -> str:
+    def dead_at(self, t: datetime) -> bool:
         """
-        :return: The text form of a reference to this player, to be used in Event headlines WHEN THE PLAYER DIES.
+        Queries deaths to determine whether a player was dead at a given time.
+        This is important for correctly rendering Pseudonyms.
+        :param t: The datetime that we are interested in.
+        :return: Whether the Player was dead at time t
         """
-        return f"<#{self.id}>"
+        session = self.session
+        res = session.scalars(select(Death).options(load_only(Death.expires, Death.event_id))
+                              .filter_by(dead_id=self.id)
+                              .where((Death.expires.is_(None)) | (Death.expires > t))
+                              )
+        for d in res:
+            if d.event.datetimestamp <= t and (d.expires is None or d.expires > t):
+                return True
+        return False
 
-    def HTML_render(self) -> str:
+    def HTML_render(self, css_class: str) -> str:
         """
-        Uses the `dead-player.jinja` template to create the HTML rendering of this player,
+        Uses the `player.jinja` template to create the HTML rendering of this player,
         to be used in headlines when they die,
         which reveals all their real name, and all their pseudonyms separated by AKA
         :return: The HTML code for the player to be used in headlines when they die.
         """
         from .templates import env
-        template = env.get_template("dead-player.jinja")
-        return template.render(player=self)
+        template = env.get_template("player.jinja")
+        return template.render(player=self, css_class=css_class)
+
+    def plaintext_render(self) -> str:
+        return " AKA ".join( (p.text for p in self.pseudonyms) ) + f" ({self.reg.realname})"

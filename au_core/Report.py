@@ -4,13 +4,11 @@ Report.py
 Defines the Report class
 """
 
-import re
-from typing import List, Union, TYPE_CHECKING
 from sqlalchemy import ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 from .Pseudonym import Pseudonym
-from .Event import Event, parse_refs_into_HTML, parse_refs_into_plaintext
+from .Event import Event, parsing_pattern
 from datetime import datetime
 
 class Report(Base):
@@ -44,10 +42,10 @@ class Report(Base):
         """
         :return: The HTML-formatted body of this report.
         """
-        return parse_refs_into_HTML(self.body, self.session)
+        return parsing_pattern.sub(lambda m: self.event._HTML_repl_ref(m), self.body)
 
     def plaintext_body(self):
         """
         :return: The parsed plaintext body of this report.
         """
-        return parse_refs_into_plaintext(self.body, self.session)
+        return parsing_pattern.sub(lambda m: self.event._plaintext_repl_ref(m), self.body)

@@ -59,8 +59,9 @@ class Game(Base):
     registrations: WriteOnlyMapped[List["Registration"]] = relationship(back_populates="game", cascade="all, delete")
     players: WriteOnlyMapped[List["Player"]] = relationship(back_populates="game", cascade="all, delete")
     assassins: WriteOnlyMapped[List["Assassin"]] = relationship(back_populates="game", overlaps="players", cascade="all, delete")
-
     events: WriteOnlyMapped[List["Event"]] = relationship(back_populates="game", cascade="all, delete")
+
+    # TODO: `Game.has` method for verifying that an object is the child of a given game?
 
     #### game logic
     
@@ -121,7 +122,6 @@ class Game(Base):
                 .scalar_subquery()
         )
 
-        # TODO: use WriteOnlyCollection `assassins` to generate query
         # fetch all alive assassins in this game with fewer than `n_targs` targets
         need_targs = session.scalars(select(Assassin.id)
                                      .filter_by(alive=True, game_id=self.id)

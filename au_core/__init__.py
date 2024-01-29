@@ -6,7 +6,7 @@ This module implements the core logic of AutoUmpire.
 
 from .enums import *
 from .config import config
-import db
+from . import db
 
 # ORM class imports
 from .Base import Base
@@ -24,8 +24,8 @@ Base.metadata.create_all(db.engine)
 # module-level functions
 from typing import Optional, Union, Callable, Any, TYPE_CHECKING
 from sqlalchemy import select
-if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+# type checking only...
+from sqlalchemy.orm import Session
 
 
 class GameNotFoundError(Exception):

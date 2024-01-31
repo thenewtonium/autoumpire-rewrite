@@ -14,10 +14,10 @@
     <hr />
     {% for r in e.reports %}
     <div class="report">
-        {{ r.author.HTML_render() | safe}} writes:
+        {{ r.author.HTML_render(r.author_css_class()) | safe}} writes:
         <br />
         <div class="indent">
-            <div class="{{r.author.colour}}">
+            <div class="{{r.author_css_class()}}">
                 {{ r.HTML_body() | safe }}
             </div>
         </div>

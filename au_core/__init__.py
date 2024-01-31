@@ -17,6 +17,7 @@ from .Assassin import Assassin
 from .Pseudonym import Pseudonym
 from .Event import Event
 from .Report import Report
+from .Death import Death
 
 # registers tables for all the ORM models derived from Base
 Base.metadata.create_all(db.engine)

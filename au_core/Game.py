@@ -239,3 +239,17 @@ class Game(Base):
         template = env.get_template("news.jinja")
 
         return template.render(events=self.events_in_week(week_n), week_n=week_n)
+
+    def is_kill_licit(self, killer: Player, victim: Player):
+        """
+        Function to determine whether given kill is licit, self-defence notwithstanding.
+        :param victim_id: Id of the Player who was killed
+        :param killer_id: Id of the Player who made the kill
+        :return: Whether the kill is licit.
+        """
+        session = self.session
+        # TODO: abstract this into a plugin architecture
+        if isinstance(killer, Assassin) and (victim in killer.targets or victim in killer.assassins):
+            return True
+        return False
+

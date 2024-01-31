@@ -54,7 +54,7 @@ class Player(Base):
         """
         session = self.session
         res = session.scalars(select(Death).options(load_only(Death.expires, Death.event_id))
-                              .filter_by(dead_id=self.id)
+                              .filter_by(victim_id=self.id)
                               .where((Death.expires.is_(None)) | (Death.expires > t))
                               )
         for d in res:

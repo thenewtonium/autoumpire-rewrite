@@ -38,6 +38,12 @@ class Report(Base):
     event: Mapped[Event] = relationship(back_populates="reports")
     author: Mapped[Pseudonym] = relationship()
 
+    def author_css_class(self) -> str:
+        """
+        :return: The css class of the author at the time the parent event happened.
+        """
+        return self.author.css_class(self.event.datetimestamp)
+
     def HTML_body(self) -> str:
         """
         :return: The HTML-formatted body of this report.

@@ -4,7 +4,8 @@ Base.py
 Defines the Base class for all the ORM models to inherit from, so that SQLAlchemy can relate them together.
 """
 
-from sqlalchemy.orm import DeclarativeBase, Session
+from sqlalchemy.orm import DeclarativeBase, Session, load_only
+from sqlalchemy import select, Select
 
 class Base(DeclarativeBase):
     """
@@ -21,6 +22,16 @@ class Base(DeclarativeBase):
         :return: The sqlalchemy.orm.Session to which this object is attached.
         """
         return Session.object_session(self)
+
+    @classmethod
+    def select(self, *columns_to_load) -> Select:
+        """
+        :param *columns_to_load: positional arguments are passed to a load_only option on the select,
+        i.e. which attributes of the class should be selected.
+        :return: A select clause on this object
+        """
+        return select(self).options(*(load_only(attr) for attr in columns_to_load))
+
 
     # nice printed representation of ORM model instances
     def __repr__(self) -> str:

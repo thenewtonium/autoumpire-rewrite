@@ -52,3 +52,4 @@
 | _| `._____||_______||_______| \______/  /__/     \__\ |_______/ |_______||_______/
 
 Welcome to the AutoUmpire:Reloaded Command Line Interface.
+If you are unsure where to start, type `help`.

@@ -7,12 +7,13 @@ Implements the `help` command
 import command_registry
 from typing import Optional
 
-@command_registry.register(aliases=["`help`"],
+@command_registry.register(primary_name='help',
+                           aliases=["`help`", "`help`."],
                            description="Displays help text",
-                           help_text="""Run without an argument, lists available commands with brief descriptions.
+                           help_text="""When run without an argument, lists available commands with brief descriptions.
 With an argument, displays help information for that command.
 Usage: help [command_name]""")
-def help(command_name: str = ""):
+def clihelp(command_name: str = ""):
     if command_name == "":
         print("Available commands:")
         cmd_names = [v for k, v in command_registry.COMMANDS.items() if v.primary_name == k]

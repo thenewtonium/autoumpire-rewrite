@@ -2,9 +2,12 @@
 load_csv.py
 
 A command line utility for loading player registrations from a CSV file.
+
+TODO: pretty-printing of signups
+TODO: request to load a game when run from os terminal without -g flag set
 """
 
-# parse command line arguments first so that --help doesn't boot up au_core
+# when running from os terminal -- parse command line arguments first so that --help doesn't boot up au_core
 if __name__ == '__main__':
     import argparse
 
@@ -20,12 +23,12 @@ if __name__ == '__main__':
 
 # some nonsense to allow us to import from the above directory
 import sys
-from os import path
-sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
+import os
+sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
 import csv
 import au_core as au
-from typing import List
+from typing import List, Optional
 from warnings import warn
 
 required_headings = ["realname", "email", "initial_pseudonym", "college", "address", "water", "notes", "type"]
@@ -41,7 +44,6 @@ class MissingHeadingsError(Exception):
 
 def parse_csv(filepath: str, game: au.Game) -> List[au.Registration]:
     """
-
     :param filepath: Path of the csv file to load registrations from.
     :param game: au_core.Game object to add the registrations to
     :return: A list of au_core.Registration objects corresponding to the rows of the CSV file.
@@ -80,27 +82,76 @@ def parse_csv(filepath: str, game: au.Game) -> List[au.Registration]:
 
     return registrations
 
-if __name__ == '__main__':
-    def callback(game: au.Game):
-        regs = parse_csv(filepath=args.filepath, game=game)
-        print("Successfully loaded the following registrations:")
-        [print(r) for r in regs]
-        if not args.save:
-            resp = input(f"Enter Y to add these registrations to game {game.name}? ").upper()
+# originally function to run as a callback once loaded a game when this run as an os terminal command
+# but also works for the main cli program
 
-        if args.save or resp == "Y":
-            for reg in regs:
-                game.add_player_from_reg(reg)
-            game.session.commit()
-            print("Successfully added all registrations to the game.")
-        else:
-            print("Aborted adding registrations frome the CSV file.")
-    try:
-        au.callback_on_game(identifier=args.game, callback=callback)
-    except au.GameNotFoundError:
-        resp = input(f"No game called {args.game} found. Enter Y to create a game of this name: ").upper()
-        if resp == "Y":
-            print(f"Creating game {args.game}...")
-            au.create_game_then_callback(name=args.game, callback=callback)
-        else:
-            print("Aborted loading CSV file.")
+def main(game: au.Game, filepath: str, save: Optional[bool] = False):
+    regs = parse_csv(filepath=filepath, game=game)
+    print("Successfully loaded the following registrations:")
+    [print(r) for r in regs]
+    if not save:
+        resp = input(f"Enter Y to add these registrations to game {game.name}? ").upper()
+
+    if save or resp == "Y":
+        for reg in regs:
+            game.add_player_from_reg(reg)
+        game.session.commit()
+        print("Successfully added all registrations to the game.")
+    else:
+        print("Aborted adding registrations frome the CSV file.")
+
+# code when run from the os terminal
+# TODO: use loadgame function here for if '-g' flag not set
+if __name__ == '__main__':
+    with au.db.Session() as session:
+        game = session.scalar(au.Game.select().filter_by(name=args.game))
+        if game is None:
+            raise au.GameNotFoundError(f"No game with name {args.game}")
+        main(game, args.filepath, save=args.save)
+
+
+import command_registry
+
+# command used by the main cli program
+@command_registry.register(primary_name="loadcsv", description="Loads players from a CSV file.")
+def cmd_loadcsv(args: str = ""):
+    if 'game' not in command_registry.state:
+        print("You need to load a game first!")
+        return
+
+    main(command_registry.state['game'], args)
+
+
+# helper commands for finding files
+@command_registry.register(aliases=['chdir'],
+    description="Changes the current working directory. (Used for finding csv files)")
+def cd(args: str = ""):
+    os.chdir(args)
+    print(f"Changed working directory to {os.getcwd()}")
+
+# util to iterate in 'chunks'
+from itertools import islice
+def chunk(it, size):
+    """
+    Util for iterating 'in chunks' over an iterator.
+    Used in the `ls` command.
+    :param it: Iterator to 'chunk'
+    :param size: Size of the chunks.
+    The last chunk will be smaller than this if the iterator's length does not divide by this.
+    :return: An iterator returning tuples of `size` elements at a time from `it`.
+    """
+    it = iter(it)
+    return iter(lambda: tuple(islice(it, size)), ())
+from tabulate import tabulate
+
+@command_registry.register(aliases=['dir'],
+    description="Lists the files in the current working directory. (Used for finding csv files)")
+def ls(args: str = ""):
+    if args == "":
+        args = os.getcwd()
+    print(args)
+    contents = os.listdir(args)
+    print(f"Files and folders in {args}")
+    tab = tabulate(chunk(contents, 3))
+    print(tab)
+

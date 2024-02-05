@@ -30,6 +30,7 @@ import csv
 import au_core as au
 from typing import List, Optional
 from warnings import warn
+from tabulate import tabulate
 
 required_headings = ["realname", "email", "initial_pseudonym", "college", "address", "water", "notes", "type"]
 blank_allowed = ["notes"]
@@ -42,6 +43,7 @@ class MissingHeadingsError(Exception):
         self.missing_headings = kwargs["missing_headings"]
         super().__init__(*args)
 
+# TODO: Return failed rows as well, and display these in another table
 def parse_csv(filepath: str, game: au.Game) -> List[au.Registration]:
     """
     :param filepath: Path of the csv file to load registrations from.
@@ -88,7 +90,8 @@ def parse_csv(filepath: str, game: au.Game) -> List[au.Registration]:
 def main(game: au.Game, filepath: str, save: Optional[bool] = False):
     regs = parse_csv(filepath=filepath, game=game)
     print("Successfully loaded the following registrations:")
-    [print(r) for r in regs]
+    tab = tabulate( [ [getattr(r, a) for a in required_headings] for r in regs] , headers=required_headings )
+    print(tab)
     if not save:
         resp = input(f"Enter Y to add these registrations to game {game.name}? ").upper()
 
@@ -108,50 +111,47 @@ if __name__ == '__main__':
         if game is None:
             raise au.GameNotFoundError(f"No game with name {args.game}")
         main(game, args.filepath, save=args.save)
+else:
+    import commands
+    # command used by the main cli program
+    @commands.register(primary_name="loadcsv", description="Loads players from a CSV file.")
+    def cmd_loadcsv(argsraw: str = ""):
+        if 'game' not in commands.state:
+            print("You need to load a game first!")
+            return
+
+        main(commands.state['game'], argsraw)
 
 
-import command_registry
+    # helper commands for finding files
+    @commands.register(aliases=['chdir'],
+                       description="Changes the current working directory. (Used for finding csv files)")
+    def cd(argsraw: str = ""):
+        os.chdir(argsraw)
+        print(f"Changed working directory to {os.getcwd()}")
 
-# command used by the main cli program
-@command_registry.register(primary_name="loadcsv", description="Loads players from a CSV file.")
-def cmd_loadcsv(args: str = ""):
-    if 'game' not in command_registry.state:
-        print("You need to load a game first!")
-        return
+    # util to iterate in 'chunks'
+    from itertools import islice
+    def chunk(it, size):
+        """
+        Util for iterating 'in chunks' over an iterator.
+        Used in the `ls` command.
+        :param it: Iterator to 'chunk'
+        :param size: Size of the chunks.
+        The last chunk will be smaller than this if the iterator's length does not divide by this.
+        :return: An iterator returning tuples of `size` elements at a time from `it`.
+        """
+        it = iter(it)
+        return iter(lambda: tuple(islice(it, size)), ())
 
-    main(command_registry.state['game'], args)
-
-
-# helper commands for finding files
-@command_registry.register(aliases=['chdir'],
-    description="Changes the current working directory. (Used for finding csv files)")
-def cd(args: str = ""):
-    os.chdir(args)
-    print(f"Changed working directory to {os.getcwd()}")
-
-# util to iterate in 'chunks'
-from itertools import islice
-def chunk(it, size):
-    """
-    Util for iterating 'in chunks' over an iterator.
-    Used in the `ls` command.
-    :param it: Iterator to 'chunk'
-    :param size: Size of the chunks.
-    The last chunk will be smaller than this if the iterator's length does not divide by this.
-    :return: An iterator returning tuples of `size` elements at a time from `it`.
-    """
-    it = iter(it)
-    return iter(lambda: tuple(islice(it, size)), ())
-from tabulate import tabulate
-
-@command_registry.register(aliases=['dir'],
-    description="Lists the files in the current working directory. (Used for finding csv files)")
-def ls(args: str = ""):
-    if args == "":
-        args = os.getcwd()
-    print(args)
-    contents = os.listdir(args)
-    print(f"Files and folders in {args}")
-    tab = tabulate(chunk(contents, 3))
-    print(tab)
+    @commands.register(aliases=['dir'],
+                       description="Lists the files in the current working directory. (Used for finding csv files)")
+    def ls(argsraw: str = ""):
+        if argsraw == "":
+            argsraw = os.getcwd()
+        print(args)
+        contents = os.listdir(argsraw)
+        print(f"Files and folders in {argsraw}")
+        tab = tabulate(chunk(contents, 3))
+        print(tab)
 

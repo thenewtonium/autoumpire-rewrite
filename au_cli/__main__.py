@@ -9,13 +9,15 @@ import sys
 
 import au_core as au
 
-import command_registry
+import commands
 # command files
 # TODO: move these into a seperate folder
 import help
 import load_csv
+import search_player
+import view_player
 
-@command_registry.register(aliases=["exit"], description="Exit this program.")
+@commands.register(aliases=["exit"], description="Exit this program.")
 def quit(*args):
     """
     Command to exit the CLI
@@ -23,10 +25,10 @@ def quit(*args):
     exit()
 
 
-@command_registry.register(primary_name="switchgame",
-                           aliases=['loadgame'],
-                           description="Load / create an assassins game. ",
-                           help_text="""Run with no arguments, this command shows you all games currently in the program's database.
+@commands.register(primary_name="switchgame",
+                   aliases=['loadgame'],
+                   description="Load / create an assassins game. ",
+                   help_text="""Run with no arguments, this command shows you all games currently in the program's database.
     Run with an integer as an argument, it loads the game with the corresponding numerical id, if it exists.
     Run with a name as an argument, it loads the game of that name if it exists, or creates a new game if it does not.
     Usage: switchgame [id | name]""")
@@ -38,7 +40,7 @@ def load_game(arg: str = ""):
     and if no such game exists, offers to create it
     :param arg:
     """
-    session = command_registry.state['session']
+    session = commands.state['session']
     # case where no game name is given
     if arg == "":
         # first display the games that exist
@@ -79,16 +81,16 @@ def load_game(arg: str = ""):
         # announce loading of game in either case.
         print(f"Loaded game {game.name}.")
     # put the loaded game in the state dict
-    command_registry.state['game'] = game
+    commands.state['game'] = game
 
 
 
 with au.db.Session() as session:
-    command_registry.state['session'] = session
+    commands.state['session'] = session
 
     load_game()
     # if player didn't load a game then quit
-    if 'game' not in command_registry.state:
+    if 'game' not in commands.state:
         print("Quitting...")
         sys.exit()
 
@@ -100,8 +102,8 @@ with au.db.Session() as session:
 
     while True:
         # load the name of the current game for display purposes
-        if 'game' in command_registry.state:
-            gamename = command_registry.state['game'].name
+        if 'game' in commands.state:
+            gamename = commands.state['game'].name
         else:
             gamename = ""
         # displays a dagger emoji where the user inputs their command
@@ -115,9 +117,12 @@ with au.db.Session() as session:
         else:
             cmd_head = whole_cmd
             cmd_args = ""
+        # throw error if command doesn't exist
+        if cmd_head not in commands.COMMANDS:
+            raise commands.InvalidCommandError(f'No command exists called `{cmd_head}`')
         # we execute the named command with the subsequent text and the state dict passed as arguments
         try:
-            command_registry.COMMANDS[cmd_head].f(cmd_args)
+            commands.COMMANDS[cmd_head].f(cmd_args)
         except Exception as e:
             print(e)
 

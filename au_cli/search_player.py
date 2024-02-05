@@ -22,28 +22,50 @@ from os import path
 sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
 
 import au_core as au
-from sqlalchemy import or_
+from tabulate import tabulate
+from typing import Tuple, Any
+from datetime import datetime
 
-if __name__ == "__main__":
-    def callback(game: au.Game):
-        session = game.session
+# TODO: 'status' entry combining Death, Competence, Wantedness
+info_headers = ('id', 'real name', 'email', 'type', 'college', 'address', 'WWS', 'notes')
+def player_info_tuple(p: au.Player) -> Tuple:
+    """
+    Converts a Player object into a tuple with entries corresponding to info_headers.
+    This is
+    :param p: Player object to convert into a tuple
+    :return: Tuple with the attributes of the Player object in the order described by `info_headers`
+    """
+    ret = (p.id, p.reg.realname, p.reg.email, p.type, p.reg.college, p.reg.address, p.reg.water, p.reg.notes)
+    return ret #(str(x) for x in ret)
 
-        # query registrations whose realname or email match the query text
-        res1 = session.scalars(game.players.select()
-                        .join(au.Registration)
-                        .where(
-                            or_(
-                                au.Registration.realname.icontains(args.query),
-                                au.Registration.email.icontains(args.query)
-                            )
-                        )
-                        .order_by(au.Registration.id)
-        )
+def main(game: au.Game, query: str):
+    session = game.session
 
-        # print out results
-        print("Id\tReference\tReal Name\tEmail\tCollege\tAddress\tWWWS\tNotes")
-        [print(f"{x.id}\t{x.reference()}\t{x.reg.realname}\t{x.reg.email}\t{x.reg.college}\t{x.reg.address}\t{x.reg.water}") for x in res1]
-    try:
-        au.callback_on_game(args.game, callback, autocommit=False)
-    except au.GameNotFoundError:
-        print(f"Error: no game found with name {args.game}.")
+    # query registrations whose realname or email match the query text
+    res1 = session.scalars(game.players.select()
+                           .join(au.Registration)
+                           .where(au.Registration.realname.icontains(query)
+                                  | au.Registration.email.icontains(query))
+                           .order_by(au.Registration.id)
+                           )
+    print(f"Players with names or email addresses containing the string '{query}':")
+    tab = tabulate((player_info_tuple(p) for p in res1), headers=info_headers)
+    print(tab)
+
+if __name__ == '__main__':
+    with au.db.Session() as session:
+        game = session.scalar(au.Game.select().filter_by(name=args.game))
+        if game is None:
+            raise au.GameNotFoundError(f"No game with name {args.game}")
+        main(game, args.query)
+else:
+    import commands
+    # command used by the main cli program
+    @commands.register(primary_name="searchplayer", aliases=["searchplayers"],
+                       description="Searches for a player by real name or email address.")
+    def cmd_searchplayer(argsraw: str = ""):
+        if 'game' not in commands.state:
+            print("You need to load a game first!")
+            return
+
+        main(commands.state['game'], argsraw)

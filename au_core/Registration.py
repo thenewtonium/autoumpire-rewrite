@@ -52,7 +52,7 @@ class Registration(Base):
     __table_args__ = (UniqueConstraint("game_id", "initial_pseudonym"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    game_id = deferred(mapped_column(ForeignKey("games.id")))
+    game_id = mapped_column(ForeignKey("games.id", ondelete="CASCADE"))
 
     # info shared with assassins
     realname: Mapped[str]

@@ -43,6 +43,7 @@ class Game(Base):
     Defaults are taken from `au_core/config.json`; the defaults above are the default config values.
     """
     __tablename__ = "games"
+    # TODO: change this to a uuid to prevent conflicts
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(unique=True)
 
@@ -56,10 +57,10 @@ class Game(Base):
     locale: Mapped[str] = mapped_column(default=config["locale"])
 
     # back-populated lists
-    registrations: WriteOnlyMapped[List["Registration"]] = relationship(back_populates="game", cascade="all, delete")
-    players: WriteOnlyMapped[List["Player"]] = relationship(back_populates="game", cascade="all, delete")
-    assassins: WriteOnlyMapped[List["Assassin"]] = relationship(back_populates="game", overlaps="players", cascade="all, delete")
-    events: WriteOnlyMapped[List["Event"]] = relationship(back_populates="game", cascade="all, delete")
+    registrations: WriteOnlyMapped[List["Registration"]] = relationship(back_populates="game", passive_deletes=True)
+    players: WriteOnlyMapped[List["Player"]] = relationship(back_populates="game", passive_deletes=True)
+    assassins: WriteOnlyMapped[List["Assassin"]] = relationship(back_populates="game", overlaps="players", passive_deletes=True)
+    events: WriteOnlyMapped[List["Event"]] = relationship(back_populates="game", passive_deletes=True)
 
     # TODO: `Game.has` method for verifying that an object is the child of a given game?
 
@@ -73,10 +74,9 @@ class Game(Base):
 
         if not self.live:
             session.delete(self)
-            # TODO: set relationship to delete orphans automatically
-            # delete orphaned registrations
-            for reg in self.registrations:
-                session.delete(reg)
+            [session.delete(reg) for reg in session.scalars(self.registrations.select())]
+            [session.delete(player) for player in session.scalars(self.players.select())]
+            [session.delete(event) for event in session.scalars(self.events.select())]
 
             #session.commit()
         else:
@@ -139,8 +139,8 @@ class Game(Base):
         # TODO: also, have temporary store of problematic choices so that we don't keep picking them,
         #  and if we run out of choices we can 're-roll'
         to_add = []
-        print(need_targs)
         for a in need_targs:
+            print(f"Finding a target for {a}... ", end="")
             #cont = True
             ok = False
             while not ok:
@@ -163,6 +163,7 @@ class Game(Base):
                     continue
                 ok = True
                 break
+            print(f"chose {t}.")
             # set `a` to target `t` now that it has been verified as ok
             to_add.append(TargRel(assassin_id=a, target_id=t))
             need_asses.remove(t)
@@ -196,6 +197,7 @@ class Game(Base):
 
         # assign initial targets
         self.assign_targets()
+        print("Targets assigned.")
 
         # mark as live
         self.live = True

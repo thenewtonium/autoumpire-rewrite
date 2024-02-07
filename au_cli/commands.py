@@ -66,3 +66,8 @@ class DuplicateCommandError(IllegalCommandNameError):
     """
     Exception raised if we try to register a command under a name which already has a command registered to it
     """
+
+class GameNotLoadedError(Exception):
+    """
+    Exception raised if somehow a command is called without a loaded game.
+    """

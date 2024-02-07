@@ -76,6 +76,7 @@ def parse_csv(filepath: str, game: au.Game) -> List[au.Registration]:
                     setattr(newreg, head[i], row[i])
 
                 # validate the registration
+                # TODO: add to session to validate!
                 try:
                     newreg.validate(enforce_unique_email=True)
                     registrations.append(newreg)
@@ -117,8 +118,7 @@ else:
     @commands.register(primary_name="loadcsv", description="Loads players from a CSV file.")
     def cmd_loadcsv(argsraw: str = ""):
         if 'game' not in commands.state:
-            print("You need to load a game first!")
-            return
+            raise(commands.GameNotLoadedError())
 
         main(commands.state['game'], argsraw)
 

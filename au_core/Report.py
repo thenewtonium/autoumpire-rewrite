@@ -27,7 +27,7 @@ class Report(Base):
     __tablename__ = "reports"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    event_id = mapped_column(ForeignKey(Event.id))
+    event_id = mapped_column(ForeignKey(Event.id, ondelete="CASCADE"))
     author_id = mapped_column(ForeignKey(Pseudonym.id))
     body: Mapped[str]
 

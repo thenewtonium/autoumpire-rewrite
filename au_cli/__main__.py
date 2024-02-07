@@ -6,6 +6,7 @@ The AutoUmpire command line interface
 
 import pathlib
 import sys
+from warnings import warn
 
 import au_core as au
 
@@ -16,6 +17,8 @@ import help
 import load_csv
 import search_player
 import view_player
+import start_game
+import delete_game
 
 @commands.register(aliases=["exit"], description="Exit this program.")
 def quit(*args):
@@ -46,6 +49,7 @@ def load_game(arg: str = ""):
         # first display the games that exist
         games = session.scalars(au.Game.select(au.Game.name, au.Game.id).order_by(au.Game.id))
         print("The following games were found in the database:")
+        # TODO: use enumerate rather than id, so that id can be a UUID
         [print(f"{g.id}: {g.name}") for g in games]
         print()
         # then ask the user to select a game
@@ -67,6 +71,7 @@ def load_game(arg: str = ""):
 
         if not game:
             print(f"{id} is not in the list!")
+            return
 
     # otherwise we try to load the game by name then create it if it doesn't exist
     else:
@@ -83,16 +88,16 @@ def load_game(arg: str = ""):
     # put the loaded game in the state dict
     commands.state['game'] = game
 
-
+def load_game_or_quit():
+    load_game()
+    if 'game' not in commands.state:
+        print("Quitting...")
+        sys.exit(0)
 
 with au.db.Session() as session:
     commands.state['session'] = session
 
-    load_game()
-    # if player didn't load a game then quit
-    if 'game' not in commands.state:
-        print("Quitting...")
-        sys.exit()
+    load_game_or_quit()
 
     # print welcome text once loaded a game
     dir = pathlib.Path(__file__).parent;
@@ -101,13 +106,14 @@ with au.db.Session() as session:
         print("".join(f.readlines()))
 
     while True:
-        # load the name of the current game for display purposes
-        if 'game' in commands.state:
-            gamename = commands.state['game'].name
-        else:
-            gamename = ""
+        # if game has been deleted, require a new one to be loaded
+        if 'game' not in commands.state:
+            load_game_or_quit()
+        game = commands.state['game']
+        # determine the emoji to appear
+        emoji = u'\U0001F195' if (game.started is None) else u' \U0001F5E1' if game.live else u'\U0001F3C1'
         # displays a dagger emoji where the user inputs their command
-        whole_cmd = str(input(gamename + u' \U0001F5E1 '))
+        whole_cmd = str(input(f"{game.name} {emoji} "))
         # we look for the first space in order to extract the command name
         i = whole_cmd.find(" ")
         # how to extract the name depends on whether the input has a space in or not
@@ -119,10 +125,12 @@ with au.db.Session() as session:
             cmd_args = ""
         # throw error if command doesn't exist
         if cmd_head not in commands.COMMANDS:
-            raise commands.InvalidCommandError(f'No command exists called `{cmd_head}`')
+            #warn(commands.InvalidCommandError(f'No command exists called `{cmd_head}`'))
+            print(f"Error: no command exists called `{cmd_head}`")
+            continue
         # we execute the named command with the subsequent text and the state dict passed as arguments
         try:
             commands.COMMANDS[cmd_head].f(cmd_args)
         except Exception as e:
-            print(e)
+            raise
 

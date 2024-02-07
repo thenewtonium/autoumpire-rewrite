@@ -13,7 +13,7 @@ from datetime import datetime
 class Death(Base):
     __tablename__ = "deaths"
     id: Mapped[int] = mapped_column(primary_key=True)
-    event_id: Mapped[int] = mapped_column(ForeignKey("events.id"))
+    event_id: Mapped[int] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
     killer_id: Mapped[int] = mapped_column(ForeignKey("players.id"))
     victim_id: Mapped[int] = mapped_column(ForeignKey("players.id"))
     expires: Mapped[Optional[datetime]] = mapped_column(DateTime)

@@ -38,7 +38,7 @@ class Event(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     headline: Mapped[str]
     datetimestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    game_id = mapped_column(ForeignKey("games.id"))
+    game_id = mapped_column(ForeignKey("games.id", ondelete="CASCADE"))
 
     game: Mapped["Game"] = relationship(back_populates="events")
     reports: Mapped[List["Report"]] = relationship(back_populates="event", order_by="Report.datetimestamp")

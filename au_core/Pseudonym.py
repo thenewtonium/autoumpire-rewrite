@@ -22,7 +22,7 @@ class Pseudonym(Base):
 
     __tablename__ = "pseudonyms"
     __table_args__ = (UniqueConstraint("game_id","text"),
-                      ForeignKeyConstraint(["game_id","owner_id"],[Player.game_id, Player.id]))
+                      ForeignKeyConstraint(["game_id","owner_id"],[Player.game_id, Player.id], ondelete="CASCADE"))
 
     id: Mapped[int] = mapped_column(primary_key=True)  # reduce database size by referring using id
 
@@ -34,7 +34,7 @@ class Pseudonym(Base):
     # TODO: change to name to 'css_class' and type to to str
     colour: Mapped[PseudonymColour] = mapped_column(default=PseudonymColour.DEFAULT)
 
-    owner_id: Mapped[int] = mapped_column(ForeignKey(Player.id))
+    owner_id: Mapped[int] = mapped_column(ForeignKey(Player.id, ondelete="CASCADE"))
     owner: Mapped[Player] = relationship(back_populates="pseudonyms",foreign_keys="[Pseudonym.owner_id,Pseudonym.game_id]")
 
     def reference(self) -> str:

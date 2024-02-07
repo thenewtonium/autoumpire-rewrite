@@ -35,10 +35,11 @@ class Player(Base):
     reg_id: Mapped[int] = mapped_column(ForeignKey(Registration.id))
     reg: Mapped[Registration] = relationship(foreign_keys=[reg_id])
 
-    game_id: Mapped[int] = mapped_column(ForeignKey("games.id"))
+    game_id: Mapped[int] = mapped_column(ForeignKey("games.id", ondelete="CASCADE"))
     game: Mapped["Game"] = relationship(back_populates="players")
 
-    pseudonyms: Mapped[List["Pseudonym"]] = relationship(back_populates="owner",foreign_keys="[Pseudonym.owner_id]")
+    pseudonyms: Mapped[List["Pseudonym"]] = relationship(back_populates="owner", foreign_keys="[Pseudonym.owner_id]",
+                                                         cascade="all, delete-orphan")
 
     __mapper_args__ = {
         "polymorphic_identity": "player",

@@ -30,6 +30,7 @@ def main(game: au.Game, confirm=True):
         if resp != "Y":
             return
     game.start()
+    game.session.commit()
 
 if __name__ == "__main__":
     with au.db.Session() as session:

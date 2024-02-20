@@ -19,6 +19,7 @@ import search_player
 import view_player
 import start_game
 import delete_game
+import add_event
 
 @commands.register(aliases=["exit"], description="Exit this program.")
 def quit(*args):

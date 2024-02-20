@@ -74,11 +74,13 @@ class Event(Base):
         """
         return parsing_pattern.sub(lambda m: self._HTML_repl_ref(m), self.headline)
 
-    def plaintext_headline(self) -> str:
+    def plaintext_headline(self, with_ts: bool = False) -> str:
         """
-        :return: The parsed plaintext headline of the event, without the timestamp
+        :param with_ts: Whether to include the timestamp in the headline. Defaults to False.
+        :return: The parsed plaintext headline of the event.
         """
-        return parsing_pattern.sub(lambda m: self._plaintext_repl_ref(m), self.headline)
+        return ((self.datetimestamp.strftime("[%I:%M %p] ") if with_ts else "") +
+                parsing_pattern.sub(lambda m: self._plaintext_repl_ref(m), self.headline))
 
     def plaintext_full(self) -> str:
         """

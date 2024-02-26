@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
 from datetime import datetime
 
+# TODO: create a mixin for classes that have an event
 class Death(Base):
     __tablename__ = "deaths"
     id: Mapped[int] = mapped_column(primary_key=True)

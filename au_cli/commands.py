@@ -12,6 +12,10 @@ from dataclasses import dataclass, field
 COMMANDS = {}
 
 # cli state, for passing data between commands
+# TODO: instead of this, define a 'CommandCall' event or some such thing that is passed to every command
+#  and includes both the loaded game and the raw arguments, also perhaps the actual command used
+#  (so that `help` can give a pointer when someone calls it with those arguments.
+#  Though, actually, this should be implemented by allowing a command to be 'hidden' and having that as a separate command...)
 state = {}
 
 @dataclass

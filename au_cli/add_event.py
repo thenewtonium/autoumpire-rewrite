@@ -41,6 +41,8 @@ sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
 import au_core as au
 from typing import Optional
 
+# TODO: consider whether should refer to 'events' as 'headlines'
+#  to make clearer what role they play in what the end user sees.
 def main(game: au.Game, datetimestamp: Optional[datetime] = None, headline: Optional[str] = None, deaths = False):
     # request datetimestamp if not specified
     while datetimestamp == None:
@@ -80,7 +82,8 @@ def main(game: au.Game, datetimestamp: Optional[datetime] = None, headline: Opti
     if resp == "Y":
         game.session.commit()
         print(f"Successfully added event. Event id is {new_event.id}.")
-        print(f"To record a death in this event, run `adddeath {new_event.id}`")
+        # TODO: link to recording deaths
+        #print(f"To record a death in this event, run `adddeath {new_event.id}`")
     else:
         game.session.rollback()
         print("Did not add event.")

@@ -39,6 +39,17 @@ class Assassin(Player):
         "polymorphic_identity": "assassin", # sets Player.type for objects of this class to "assassin"
     }
 
+    # TODO: event-based structure for targets, so we have a 'wanted at'
+    #  Maybe a a bit overwrought but allows us to track targetting!
+    def licit_for(self, killer: Player) -> bool:
+        # TODO: check for wantedness/incompetence
+        if isinstance(killer, Assassin):
+            if self in killer.targets:
+                return (True, f'because {self.id} is a target of {killer.id}')
+            if self in killer.assassins:
+                return (True, f'because {self.id} is targetting {killer.id}')
+            return (False, f'because {self.id} is neither a target of nor targetting {killer.id}')
+
     def send_update(self, body: str = ""):
         from .templates import env
         from babel.dates import format_datetime

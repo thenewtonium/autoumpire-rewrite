@@ -76,7 +76,7 @@ def parse_csv(filepath: str, game: au.Game) -> List[au.Registration]:
                     setattr(newreg, head[i], row[i])
 
                 # validate the registration
-                # TODO: add to session to validate!
+                # TODO: add to session to validate!fff
                 try:
                     newreg.validate(enforce_unique_email=True)
                     registrations.append(newreg)
@@ -131,6 +131,7 @@ else:
         print(f"Changed working directory to {os.getcwd()}")
 
     # util to iterate in 'chunks'
+    # TODO: put this in its own file since it's also used by add_death.py for parsing
     from itertools import islice
     def chunk(it, size):
         """

@@ -5,7 +5,7 @@ Defines the Player class, which represents the instance of a player in a game,
 and which the Assassin and Police classes inherit from as "types" of players.
 """
 
-from typing import List
+from typing import List, Tuple
 from .Base import Base
 from .Registration import Registration
 from sqlalchemy.orm import Mapped, mapped_column, relationship, load_only
@@ -62,6 +62,9 @@ class Player(Base):
             if d.event.datetimestamp <= t and (d.expires is None or d.expires > t):
                 return True
         return False
+
+    def licit_for(self, killer) -> Tuple[bool, str]:
+        return (False, "by default")
 
     def HTML_render(self, css_class: str) -> str:
         """

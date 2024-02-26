@@ -178,6 +178,7 @@ class Game(Base):
         Currently, reflexive and symmetric targetting relations are forbidden,
         but the "girth > 3" requirement of the original AutoUmpire is not yet implemented.
         """
+        # TODO: store which players got new targets
         while self._assign_targets_one_pass():
             pass
 

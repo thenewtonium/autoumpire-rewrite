@@ -23,6 +23,7 @@ import add_event
 import add_death
 import view_headlines
 import view_reports
+import add_report
 
 @commands.register(aliases=["exit"], description="Exit this program.")
 def quit(*args):

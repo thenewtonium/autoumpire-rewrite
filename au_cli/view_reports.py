@@ -42,11 +42,11 @@ def main(id: int, game: Optional[au.Game] = None):
         raise EventNotFoundError(f"There is no event with id {id}")
 
     print("Event date: " + event.datetimestamp.strftime("%A, %d %B %Y"))
-    print("Parsed headline + reports:")
-    print(event.plaintext_full())
-    print()
     print("Raw headline + reports:")
     print(event.raw_full())
+    print()
+    print("Parsed headline + reports:")
+    print(event.plaintext_full())
 
     # TODO: display deaths, competency info
 
@@ -61,6 +61,7 @@ else:
     @commands.register(primary_name="viewreports", aliases=["view_reports", "eventinfo", "event_info"],
                        description="Fetches information on a player, including their pseudonyms, using their id")
     def cmd_viewplayer(rawargs):
+        # TODO: handling for if an int not given
         id = int(rawargs)
         game = commands.state['game']
         main(id, game)

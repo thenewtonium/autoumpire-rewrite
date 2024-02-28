@@ -91,3 +91,14 @@ class Event(Base):
                 + "---\n"\
                 + "\n\n\n".join([f"{x.author.text} writes\n{x.plaintext_body()}" for x in self.reports]) \
                 + "\n---"
+
+    def raw_full(self) -> str:
+        """
+        :return: The "raw" form of plaintext_full, i.e. the whole event & reports with <@xxx> references
+        rather than parsed pseudonyms
+        """
+        return "---\n" \
+               + f"[{datetime.strftime(self.datetimestamp, '%H:%M')}] {self.headline}\n" \
+               + "---\n" \
+               + "\n\n\n".join([f"{x.author.reference()} writes\n{x.body}" for x in self.reports]) \
+               + "\n---"

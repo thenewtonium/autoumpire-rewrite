@@ -21,6 +21,8 @@ import start_game
 import delete_game
 import add_event
 import add_death
+import view_headlines
+import view_reports
 
 @commands.register(aliases=["exit"], description="Exit this program.")
 def quit(*args):

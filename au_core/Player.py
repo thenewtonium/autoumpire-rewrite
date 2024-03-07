@@ -8,13 +8,14 @@ and which the Assassin and Police classes inherit from as "types" of players.
 from typing import List, Tuple
 from .Base import Base
 from .Registration import Registration
+from .Game import GameObject
 from sqlalchemy.orm import Mapped, mapped_column, relationship, load_only
 from sqlalchemy import ForeignKeyConstraint, ForeignKey, select
 from datetime import datetime
 from .Death import Death
 
 # TODO: uniqueness constraint on reg_id + type? I.e. only one instance of each TYPE of player per person
-class Player(Base):
+class Player(Base, GameObject):
     """
     Player class
 
@@ -28,15 +29,10 @@ class Player(Base):
     """
 
     __tablename__ = "players"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
     type: Mapped[str]
 
     reg_id: Mapped[int] = mapped_column(ForeignKey(Registration.id))
     reg: Mapped[Registration] = relationship(foreign_keys=[reg_id])
-
-    game_id: Mapped[int] = mapped_column(ForeignKey("games.id", ondelete="CASCADE"))
-    game: Mapped["Game"] = relationship(back_populates="players")
 
     pseudonyms: Mapped[List["Pseudonym"]] = relationship(back_populates="owner", foreign_keys="[Pseudonym.owner_id]",
                                                          cascade="all, delete-orphan")

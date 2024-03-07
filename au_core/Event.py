@@ -5,13 +5,13 @@ Defines the `Event` class.
 """
 
 import re
-from typing import List, Union
-from sqlalchemy import ForeignKey, DateTime, and_
-from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
+from typing import List
+from sqlalchemy import ForeignKey, DateTime, ScalarResult
+from sqlalchemy.orm import Mapped, mapped_column, relationship, WriteOnlyMapped
 from .Base import Base
+from .Game import Game
 from .Pseudonym import Pseudonym
-from .Player import Player
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # TODO: allow escaping?
 # regex pattern for extracting the id of the pseudonym/player from a reference
@@ -102,3 +102,37 @@ class Event(Base):
                + "---\n" \
                + "\n\n\n".join([f"{x.author.reference()} writes\n{x.body}" for x in self.reports]) \
                + "\n---"
+
+Game.events: WriteOnlyMapped[List[Event]] = relationship(Event, lazy="write_only",
+                                                         back_populates="game", passive_deletes=True)
+
+#### INSERTIONS INTO `Game` ####
+
+def Game_generate_headlines(self) -> str:
+    from .templates import env
+    template = env.get_template("headlines.jinja")
+
+    events = self.session.scalars(self.events.select().order_by(Event.datetimestamp))
+    return template.render(events=events)
+Game.generate_headlines = Game_generate_headlines
+
+def Game_events_in_week(self, week_n: int) -> ScalarResult[Event]:
+    """
+    :param week_n: The week number to query events in.
+    :return: The result of querying Event objects whose datetimestamp falls in week_n
+    """
+    d = self.started
+    upper_bound = datetime(year=d.year, month=d.month, day=d.day) + timedelta(weeks=week_n)
+    lower_bound = upper_bound - timedelta(weeks=1)
+
+    return self.session.scalars( self.events.select().where(
+        (lower_bound <= Event.datetimestamp) & (Event.datetimestamp < upper_bound)
+    ))
+Game.events_in_week = Game_events_in_week
+
+def Game_generate_news_page(self, week_n) -> str:
+    from .templates import env
+    template = env.get_template("news.jinja")
+
+    return template.render(events=self.events_in_week(week_n), week_n=week_n)
+Game.generate_news_page = Game_generate_news_page

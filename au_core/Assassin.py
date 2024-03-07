@@ -9,6 +9,7 @@ import random
 import concurrent.futures
 from typing import List, Optional
 from .Player import Player
+from .Death import licitnessHook
 from .Base import Base
 from .Game import Game
 from sqlalchemy import ForeignKey, DateTime, select, func
@@ -85,9 +86,9 @@ class Assassin(Player):
 
 #### INSERTIONS INTO `Game` CLASS ####
 
-Game.assassins: WriteOnlyMapped[List[Assassin]] = relationship(back_populates="game", overlaps="players", passive_deletes=True)
+Game.assassins: WriteOnlyMapped[List[Assassin]] = relationship(Assassin, lazy="write_only", overlaps="players",
+                                                               back_populates="game", passive_deletes=True)
 
-@Game.method
 def _assign_targets_one_pass(self) -> bool:
     """
     One pass of the target-assignment algorithm. This will be repeated until it returns `False`
@@ -158,8 +159,7 @@ def _assign_targets_one_pass(self) -> bool:
     session.add_all(to_add)
     return (len(to_add) > 0)
 
-@Game.method
-def assign_targets(self):
+def Game_assign_targets(self):
     """
     Assigns targets to assassins in this game who have fewer than the number of targets required by the game settings (`n_targs`),
     choosing randomly from the assassins who have fewer than the requisite number of people targetting them.
@@ -167,11 +167,11 @@ def assign_targets(self):
     but the "girth > 3" requirement of the original AutoUmpire is not yet implemented.
     """
     # TODO: store which players got new targets
-    while self._assign_targets_one_pass():
+    while _assign_targets_one_pass(self):
         pass
+Game.assign_targets = Game_assign_targets
 
-@Game.method
-def send_updates(self, message: str = ""):
+def Game_send_updates(self, message: str = ""):
     """
     :param message: The message body to send along with the updates.
     """
@@ -183,7 +183,9 @@ def send_updates(self, message: str = ""):
     # concurrently call the send_update method of each live assassin
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.map(lambda a: a.send_update(message), assassins)
+Game.send_updates = Game_send_updates
 
+### PluginHook registrations ###
 
 @Game.startHook.register()
 def onstart(game: Game):
@@ -195,3 +197,9 @@ def onstart(game: Game):
         executor.map(lambda a: setattr(a, "competence_deadline", inital_deadline), assassins)
     game.assign_targets()
     game.send_updates()
+
+@licitnessHook.register()
+def target_licitness(killer: Player, victim: Player) -> Optional[bool]:
+    """Licitness condition allowing kills if there is a targetting relation between two players"""
+    if isinstance(killer, Assassin) and isinstance(victim, Assassin):
+        return True if victim in killer.targets or killer in victim.targets else None

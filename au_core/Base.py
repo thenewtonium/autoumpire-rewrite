@@ -39,6 +39,7 @@ class Base(DeclarativeBase):
         """
         A function decorator for adding additional methods to classes post-declaration.
         This is useful e.g. for methods of `Game` that refer to classes defined later.
+        However, IDEs will not recognise methods registered in this way, so the 'classic' approach may be preferable.
         :return: A function decorator
         """
         setattr(cls, f.__name__, f)
@@ -86,33 +87,39 @@ class PluginHook:
     # 'private' because should never be called directly except by the event that triggers the hook
     def _execute(self, *args, **kwargs):
         """
+        Executes all the functions hooked to this PluginHook, in order of priority.
         :param args: Positional arguments are passed to each hooked function
         :param kwargs: Keyword arguments are passed to each hooked function
         """
         for hf in self.hooked_functions:
+            # TODO: decide what to do about errors
             hf(*args, **kwargs)
 
-    """def execute(self, *args, **kwargs):
-        done = set()
-        pending = self.hooked_functions.copy()
+    def _execute_return_last(self, *args, **kwargs) -> Any:
+        """
+        Executes all hooked functions as `_execute`, but returns the *last non-`None` return value`.
+        :param args: Positional arguments are passed to each hooked function
+        :param kwargs: Keyword arguments are passed to each hooked function
+        :return: The last non-`None` return value of the hooked functions, executed in order of priority.
+        """
+        ret = None
+        for hf in self.hooked_functions:
+            r = hf(*args, **kwargs)
+            if r is not None:
+                ret = r
+        return ret
 
-        # keep going through the pending functions,
-        # executing all those whose dependencies have been executed
-        changed = True
-        while changed:
-            changed = False
-            for hf in pending:
-                if done >= hf.awaits:
-                    hf.f(self, *args, **kwargs)
-                    done.add(hf)
-                    pending.discard(hf)
-                    changed = True
-
-        # Throw an error if we can't execute -- generally this happens by circular dependency
-        if len(pending != 0):
-            raise UnexecutedHookedFunctionError(f'{self.__name__} could not execute HookedFunctions '
-                                                + ', '.join([hf.f.__name__ for hf in pending])
-                                                + ". Check for circular dependencies.")"""
+    def _execute_break_at_return(self, *args, **kwargs) -> Any:
+        """
+        Executes hooked functions in order until the first non-`None` return value, and returns this.
+        :param args: Positional arguments are passed to each hooked function
+        :param kwargs: Keyword arguments are passed to each hooked function
+        :return: The first non-`None` value returned when executing hooked functions in order of priority
+        """
+        for hf in self.hooked_functions:
+            r = hf(*args, **kwargs)
+            if r is not None:
+                return r
 
 
 

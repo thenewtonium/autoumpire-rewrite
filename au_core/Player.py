@@ -8,14 +8,13 @@ and which the Assassin and Police classes inherit from as "types" of players.
 from typing import List, Tuple
 from .Base import Base
 from .Registration import Registration
-from .Game import GameObject
-from sqlalchemy.orm import Mapped, mapped_column, relationship, load_only
+from .Game import GameObject, Game
+from sqlalchemy.orm import Mapped, mapped_column, relationship, load_only, WriteOnlyMapped
 from sqlalchemy import ForeignKeyConstraint, ForeignKey, select
 from datetime import datetime
-from .Death import Death
 
 # TODO: uniqueness constraint on reg_id + type? I.e. only one instance of each TYPE of player per person
-class Player(Base, GameObject):
+class Player(GameObject, Base):
     """
     Player class
 
@@ -42,23 +41,6 @@ class Player(Base, GameObject):
         "polymorphic_on": "type",
     }
 
-    def dead_at(self, t: datetime) -> bool:
-        """
-        Queries deaths to determine whether a player was dead at a given time.
-        This is important for correctly rendering Pseudonyms.
-        :param t: The datetime that we are interested in.
-        :return: Whether the Player was dead at time t
-        """
-        session = self.session
-        res = session.scalars(select(Death).options(load_only(Death.expires, Death.event_id))
-                              .filter_by(victim_id=self.id)
-                              .where((Death.expires.is_(None)) | (Death.expires > t))
-                              )
-        for d in res:
-            if d.event.datetimestamp <= t and (d.expires is None or d.expires > t):
-                return True
-        return False
-
     def licit_for(self, killer) -> Tuple[bool, str]:
         return (False, "by default")
 
@@ -75,3 +57,6 @@ class Player(Base, GameObject):
 
     def plaintext_render(self) -> str:
         return " AKA ".join( (p.text for p in self.pseudonyms) ) + f" ({self.reg.realname})"
+
+Game.players: WriteOnlyMapped[List[Player]] = relationship(Player,  lazy="write_only",
+                                                           back_populates="game", passive_deletes=True)

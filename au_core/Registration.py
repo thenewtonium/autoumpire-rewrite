@@ -4,12 +4,14 @@ Registration.py
 Defines the ORM model `Registration` representing initial player registrations.
 """
 
-from sqlalchemy.orm import Mapped, mapped_column, relationship, deferred, Session
+from sqlalchemy.orm import Mapped, mapped_column, relationship, Session, WriteOnlyMapped
 from sqlalchemy import ForeignKey, select, UniqueConstraint
 from .Base import Base
 from .enums import RegType, College, WaterStatus
 from .config import config
+from .Game import Game
 from email_validator import validate_email, EmailNotValidError
+from typing import List
 from warnings import warn
 
 # imports for sending emails
@@ -156,3 +158,6 @@ class Registration(Base):
         res = session.scalars(select(Registration).filter_by(game_id=self.game_id, initial_pseudonym=self.initial_pseudonym)).one_or_none()
         if res is not None:
             raise DuplicateError(f"{self.initial_pseudonym} is already the initial pseudonym of {res}")
+
+Game.registrations: WriteOnlyMapped[List[Registration]] = relationship(Registration,  lazy="write_only",
+                                                                       back_populates="game", passive_deletes=True)

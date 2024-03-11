@@ -4,16 +4,16 @@ au_core
 This module implements the core logic of AutoUmpire.
 """
 
-from .enums import *
 from .config import config
 from . import db
 
 # ORM class imports
 from .Base import Base
 from .Game import Game
-from .Registration import Registration
 from .Player import Player
 from .Assassin import Assassin
+from .Police import Police
+from . import targetting
 from .Pseudonym import Pseudonym
 from .Event import Event
 from .Report import Report

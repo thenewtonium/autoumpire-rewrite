@@ -27,7 +27,7 @@ from typing import Tuple, Any
 from datetime import datetime
 
 # TODO: 'status' entry combining Death, Competence, Wantedness
-info_headers = ('id', 'real name', 'email', 'type', 'college', 'address', 'WWS', 'notes')
+info_headers = ('id', 'real name', 'email', 'type', 'other info')#'college', 'address', 'WWS', 'notes')
 def player_info_tuple(p: au.Player) -> Tuple:
     """
     Converts a Player object into a tuple with entries corresponding to info_headers.
@@ -35,7 +35,8 @@ def player_info_tuple(p: au.Player) -> Tuple:
     :param p: Player object to convert into a tuple
     :return: Tuple with the attributes of the Player object in the order described by `info_headers`
     """
-    ret = (p.id, p.reg.realname, p.reg.email, p.type, p.reg.college, p.reg.address, p.reg.water, p.reg.notes)
+    ret = (p.id, p.realname, p.email, p.type, p.info)
+    #ret = (p.id, p.reg.realname, p.reg.email, p.type, p.reg.college, p.reg.address, p.reg.water, p.reg.notes)
     return ret #(str(x) for x in ret)
 
 def main(game: au.Game, query: str):
@@ -43,11 +44,16 @@ def main(game: au.Game, query: str):
 
     # query registrations whose realname or email match the query text
     res1 = session.scalars(game.players.select()
+                           .where(au.Player.realname.icontains(query)
+                                  | au.Player.email.icontains(query))
+                           .order_by(au.Player.id)
+                           )
+    """res1 = session.scalars(game.players.select()
                            .join(au.Registration)
                            .where(au.Registration.realname.icontains(query)
                                   | au.Registration.email.icontains(query))
                            .order_by(au.Registration.id)
-                           )
+                           )"""
     print(f"Players with names or email addresses containing the string '{query}':")
     tab = tabulate((player_info_tuple(p) for p in res1), headers=info_headers)
     print(tab)

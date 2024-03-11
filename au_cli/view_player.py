@@ -48,24 +48,27 @@ def main(id: int, game: Optional[au.Game] = None):
     print(infotab)
     print()
 
+    realname = player.realname
+
     # display the player's pseudonyms
     pseutab = tabulate(((pn.text, pn.id)  for pn in player.pseudonyms), headers=('Pseudonym', 'Id'))
-    print(f"{player.reg.realname}'s Pseudonyms:")
+    print(f"{realname}'s Pseudonyms:")
     print(pseutab)
     print()
 
     # if the player is an assassin, display their targets and assassins
     if isinstance(player, au.Assassin):
-        print("Competence deadline: " + player.competence_deadline.strftime("%a %d %b, %H:%M"))
-        print()
+        if player.competence_deadline:
+            print("Competence deadline: " + player.competence_deadline.strftime("%a %d %b, %H:%M"))
+            print()
 
-        targtab = tabulate((player_info_tuple(t) for t in player.targets), headers=info_headers)
-        print(f"{player.reg.realname}'s Targets:")
+        targtab = tabulate((player_info_tuple(t) for t in player.get_targets()), headers=info_headers)
+        print(f"{realname}'s Targets:")
         print(targtab)
         print()
 
-        asstab = tabulate((player_info_tuple(t) for t in player.assassins), headers=info_headers)
-        print(f"Assassins targetting {player.reg.realname}:")
+        asstab = tabulate((player_info_tuple(t) for t in player.get_assassins()), headers=info_headers)
+        print(f"Assassins targetting {realname}:")
         print(asstab)
         print()
 

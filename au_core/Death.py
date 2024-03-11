@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base, PluginHook
 from .Player import Player
 from .Game import Game
+from .Event import Event
 from datetime import datetime
 
 # TODO: create a mixin for classes that have an event
@@ -17,13 +18,13 @@ from datetime import datetime
 class Death(Base):
     __tablename__ = "deaths"
     id: Mapped[int] = mapped_column(primary_key=True)
-    event_id: Mapped[int] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
-    killer_id: Mapped[int] = mapped_column(ForeignKey("players.id"))
-    victim_id: Mapped[int] = mapped_column(ForeignKey("players.id"))
+    event_id: Mapped[int] = mapped_column(ForeignKey(Event.id, ondelete="CASCADE"))
+    killer_id: Mapped[int] = mapped_column(ForeignKey(Player.id))
+    victim_id: Mapped[int] = mapped_column(ForeignKey(Player.id))
     expires: Mapped[Optional[datetime]] = mapped_column(DateTime)
     licit: Mapped[bool] # for the purpose of counting score
 
-    event: Mapped["Event"] = relationship(foreign_keys=[event_id])
+    event: Mapped[Event] = relationship(foreign_keys=[event_id])
     victim: Mapped["Player"] = relationship(foreign_keys=[victim_id])
 
 

@@ -27,31 +27,64 @@ import os
 sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ) )
 
 import csv
+import json
 import au_core as au
-from typing import List, Optional
-from warnings import warn
+from typing import List, Optional, Tuple
 from tabulate import tabulate
+from dataclasses import dataclass
 
-required_headings = ["realname", "email", "initial_pseudonym", "college", "address", "water", "notes", "type"]
-blank_allowed = ["notes"]
+player_type_mapping = {
+    "Full Player": au.Assassin,
+    "Police": au.Police
+}
+TYPE_HEADING = "type"
+REALNAME_HEADING = "real name"
+EMAIL_HEADING = "email"
+PSEUDONYM_HEADING = "initial pseudonym"
 
-class MissingHeadingsError(Exception):
-    """
-    Exception raised when a CSV file being parsed is missing required headings.
-    """
-    def __init__(self, *args, **kwargs):
-        self.missing_headings = kwargs["missing_headings"]
-        super().__init__(*args)
+required_headings = [TYPE_HEADING, REALNAME_HEADING, EMAIL_HEADING, PSEUDONYM_HEADING, "college", "address", "water", "notes"]
 
-# TODO: Return failed rows as well, and display these in another table
-def parse_csv(filepath: str, game: au.Game) -> List[au.Registration]:
+class SignupsError(Exception):
+    """base exception class for signup parsing errors"""
+
+class MissingHeadingsError(SignupsError):
+    """Exception raised when a CSV file being parsed is missing required headings."""
+
+@dataclass
+class InvalidRowError(SignupsError):
+    """Exception raised when a row is invalid"""
+    row: List[str]
+
+@dataclass
+class InvalidPlayerTypeError(InvalidRowError, ValueError):
+    """Exception for when a row is invalid because the type column's value can't be found int player_type_mapping"""
+    player_type: str
+
+@dataclass
+class DuplicateError(InvalidRowError):
+    """Exception for when a row is invalid because it partially duplicates another player"""
+    existing_player: au.Player
+
+@dataclass
+class DuplicateEmailError(DuplicateError):
+    """Exception for when a row is invalid because it duplicates an existing player's email"""
+    email: str
+
+@dataclass
+class DuplicatePseudonymError(DuplicateError):
+    """Exception for when a row is invalid because it duplicates an existing pseudonym"""
+    pseudonym: str
+
+def parse_csv(filepath: str, game: au.Game) -> Tuple[List[au.Player], List[InvalidRowError]]:
     """
     :param filepath: Path of the csv file to load registrations from.
     :param game: au_core.Game object to add the registrations to
-    :return: A list of au_core.Registration objects corresponding to the rows of the CSV file.
+    :return: A tuple of a list of player objects created from valid registrations, and a list of errors
     """
+    session = game.session
 
     registrations = []
+    errors = []
 
     with open(filepath) as csvfile:
         reader = csv.reader(csvfile)
@@ -66,43 +99,86 @@ def parse_csv(filepath: str, game: au.Game) -> List[au.Registration]:
                 # verify all required headings present
                 missing_headings = [h for h in required_headings if h not in head]
                 if len(missing_headings) > 0:
-                    raise MissingHeadingsError(f"CSV file is missing the following headings: {', '.join(missing_headings)}",
-                                               missing_headings=missing_headings)
+                    raise MissingHeadingsError(f"CSV file is missing the following headings: {', '.join(missing_headings)}")
             # rest of rows are entries
             else:
-                # set Registration attributes based on the head row
-                newreg = au.Registration(game=game)
+                # first stash the row into an 'info' dict
+                info = dict()
                 for i in range(len(row)):
-                    setattr(newreg, head[i], row[i])
+                    info[head[i]] = row[i]
 
-                # validate the registration
-                # TODO: add to session to validate!fff
-                try:
-                    newreg.validate(enforce_unique_email=True)
-                    registrations.append(newreg)
-                except Exception as e:
-                    warn(e)
+                # collect error for invalid player type
+                t = info.pop(TYPE_HEADING).strip()
+                if t not in player_type_mapping:
+                    errors.append(InvalidPlayerTypeError(row=row))
+                    continue
 
-    return registrations
+                # TODO: validate email
+                email = info.pop(EMAIL_HEADING).strip()
+                # collect error for duplicate email
+                dup = session.scalar(game.players.select().filter_by(email=email))
+                if dup:
+                    errors.append(DuplicateEmailError(email=email, existing_player=dup))
+                    continue
+
+                # TODO: ensure nonempty pseudonym
+                initial_pseudonym = info.pop(PSEUDONYM_HEADING).strip()
+                # collect error for duplicate initial pseudonym
+                dup = session.scalar(au.Pseudonym.select(au.Pseudonym.owner_id)
+                                     .where(au.Pseudonym.owner.has(au.Player.game_id == game.id))
+                                     .filter_by(text=initial_pseudonym))
+                if dup:
+                    errors.append(DuplicatePseudonymError(pseudonym=initial_pseudonym, existing_player=dup))
+
+                # extract realname
+                # TODO: ensure nonempty real name
+                realname = info.pop(REALNAME_HEADING)
+
+                # construct Player and Pseudonym objects, and add to the list of new regs
+                newplayer = player_type_mapping[t](realname=realname, email=email, info=info,
+                                       pseudonyms=[au.Pseudonym(text=initial_pseudonym)])
+
+                registrations.append(newplayer)
+                # also queue it up so that duplicate checking works
+                # TODO: replace this with seperately checking in registrations for duplicates
+                game.players.add(newplayer)
+
+    return (registrations, errors)
 
 # originally function to run as a callback once loaded a game when this run as an os terminal command
 # but also works for the main cli program
 
 def main(game: au.Game, filepath: str, save: Optional[bool] = False):
-    regs = parse_csv(filepath=filepath, game=game)
+    regs, errs = parse_csv(filepath=filepath, game=game)
+
+    # case where there were problems
+    if len(errs) != 0:
+        print("Errors were found in the following rows:")
+        for err in errs:
+            print(', '.join(err.row))
+            if isinstance(err, InvalidPlayerTypeError):
+                print(f"-- {err.player_type} is not a valid player type (should be one of {', '.join(player_type_mapping.keys())})")
+            elif isinstance(err, DuplicatePseudonymError):
+                print(f"-- {err.pseudonym} is already the pseudonym of {err.existing_player.realname}")
+            elif isinstance(err, DuplicateEmailError):
+                print(f"-- {err.email} is already the email of {err.existing_player.realname}")
+            else:
+                print(f"-- {err}")
+        return
+
     print("Successfully loaded the following registrations:")
-    tab = tabulate( [ [getattr(r, a) for a in required_headings] for r in regs] , headers=required_headings )
+    tab = tabulate( [ [r.realname, r.email, r.type, r.pseudonyms[0].text,  json.dumps(r.info)] for r in regs],
+                    headers=["Real Name", "Email", "Player Type", "Initial Pseudonym", "Other Info"])
     print(tab)
     if not save:
         resp = input(f"Enter Y to add these registrations to game {game.name}? ").upper()
 
     if save or resp == "Y":
-        for reg in regs:
-            game.add_player_from_reg(reg)
         game.session.commit()
         print("Successfully added all registrations to the game.")
     else:
-        print("Aborted adding registrations frome the CSV file.")
+        game.session.rollback()
+        print("Aborted adding registrations from the CSV file.")
 
 # code when run from the os terminal
 # TODO: use loadgame function here for if '-g' flag not set
@@ -150,7 +226,6 @@ else:
     def ls(argsraw: str = ""):
         if argsraw == "":
             argsraw = os.getcwd()
-        print(args)
         contents = os.listdir(argsraw)
         print(f"Files and folders in {argsraw}")
         tab = tabulate(chunk(contents, 3))

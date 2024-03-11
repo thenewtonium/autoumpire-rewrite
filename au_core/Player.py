@@ -6,15 +6,13 @@ and which the Assassin and Police classes inherit from as "types" of players.
 """
 
 from typing import List, Tuple
-from .Base import Base
-from .Registration import Registration
 from .Game import GameObject, Game
-from sqlalchemy.orm import Mapped, mapped_column, relationship, load_only, WriteOnlyMapped
-from sqlalchemy import ForeignKeyConstraint, ForeignKey, select
-from datetime import datetime
+from .Base import Base
+from sqlalchemy.orm import Mapped, relationship, WriteOnlyMapped, deferred, mapped_column
+from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.types import JSON
 
-# TODO: uniqueness constraint on reg_id + type? I.e. only one instance of each TYPE of player per person
-class Player(GameObject, Base):
+class Player(Base, GameObject):
     """
     Player class
 
@@ -28,21 +26,28 @@ class Player(GameObject, Base):
     """
 
     __tablename__ = "players"
-    type: Mapped[str]
+    type: Mapped[str] # for polymorphism
 
-    reg_id: Mapped[int] = mapped_column(ForeignKey(Registration.id))
-    reg: Mapped[Registration] = relationship(foreign_keys=[reg_id])
+    realname: Mapped[str] # required for event rendering
+    email: Mapped[str] # TODO: abstract into a 'contact' so that can extend to also msg over discord
 
-    pseudonyms: Mapped[List["Pseudonym"]] = relationship(back_populates="owner", foreign_keys="[Pseudonym.owner_id]",
-                                                         cascade="all, delete-orphan")
+    # info given to assassins -- stored as native JSON so that this info can easily be changed across games
+    # without breaking an existing database or proliferating new tables
+    # 'standard' setup is
+    # college
+    # address
+    # water weapons status
+    # notes
+    #
+    # but e.g. in COVID it may have been useful to add a 'self-isolating' parameter apart from notes
+    # to give it additional salience.
+    info: Mapped[dict] = deferred(mapped_column(MutableDict.as_mutable(JSON)))
+    # note: this requires that the backend supports native JSON types
 
     __mapper_args__ = {
         "polymorphic_identity": "player",
         "polymorphic_on": "type",
     }
-
-    def licit_for(self, killer) -> Tuple[bool, str]:
-        return (False, "by default")
 
     def HTML_render(self, css_class: str) -> str:
         """
@@ -57,6 +62,7 @@ class Player(GameObject, Base):
 
     def plaintext_render(self) -> str:
         return " AKA ".join( (p.text for p in self.pseudonyms) ) + f" ({self.reg.realname})"
+
 
 Game.players: WriteOnlyMapped[List[Player]] = relationship(Player,  lazy="write_only",
                                                            back_populates="game", passive_deletes=True)

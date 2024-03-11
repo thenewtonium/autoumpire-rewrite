@@ -5,7 +5,7 @@ Defines the Base class for all the ORM models to inherit from, so that SQLAlchem
 """
 
 from sqlalchemy.orm import DeclarativeBase, Session, load_only, Mapped, mapped_column
-from sqlalchemy import select, Select
+from sqlalchemy import select, Select, delete, Delete
 from typing import Callable, Any, List, Optional, Set
 from dataclasses import dataclass, field
 
@@ -30,9 +30,16 @@ class Base(DeclarativeBase):
         """
         :param *columns_to_load: positional arguments are passed to a load_only option on the select,
         i.e. which attributes of the class should be selected.
-        :return: A select clause on this object
+        :return: A SELECT clause on this object
         """
         return select(cls).options(*(load_only(attr) for attr in columns_to_load))
+
+    @classmethod
+    def delete(cls) -> Delete:
+        """
+        :return: A DELETE clause on this object
+        """
+        return delete(cls)
 
     @classmethod
     def method(cls, f: Callable[..., Any]) -> Callable[..., Any]:
@@ -70,7 +77,7 @@ class PluginHook:
             :param f: The function to register to the hook
             :return: An unchanged f
             """
-            for i in range(len(self.hooked_functions)):
+            for i in range(len(self.hooked_functions)+1):
                 if len(awaits) == 0:
                     self.hooked_functions.insert(i, f)
                     break

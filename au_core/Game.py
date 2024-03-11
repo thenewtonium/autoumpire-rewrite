@@ -22,22 +22,18 @@ class LiveGameError(Exception):
 
 class Game(Base):
     """
-    Settings are:
-        n_targs             -   The number of targets each assassin should be assigned. Defaults to 3.
-        initial_competence  -   The length of time until assassins go incompetent from the start of the game.
-                                Defaults to 7 days.
-        locale              -   The locale that should be used for generating emails.
-                                This basically only affects datetime formatting.
-                                Defaults to "en_GB".
-    Defaults are taken from `au_core/config.json`; the defaults above are the default config values.
+    Represents a game of assassins,
+    allowing multiple games to be stored in the same database and storing game settings.
     """
     __tablename__ = "games"
-    # TODO: change this to a uuid to prevent conflicts
+    # TODO: change this to a uuid to prevent conflicts?
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(unique=True)
 
     # game state
     live: Mapped[bool] = mapped_column(default=False)
+    # TODO: replace with a 'start event'
+    #  -- i.e. the event that all the StateChanges that happen at the game start attach to
     started: Mapped[Optional[datetime]]
 
     # settings
@@ -56,7 +52,7 @@ class Game(Base):
         """
         if not self.live:
             self.session.delete(self)
-            self.deleteHook._execute()
+            self.deleteHook._execute(self)
         else:
             raise LiveGameError(f"Cannot delete game {self} as it is live.")
 
@@ -67,12 +63,39 @@ class Game(Base):
         self.live = True
         self.started = datetime.now(timezone.utc)
 
+
 class GameObject:
-    """A 'mixin' class for defining classes for 'child' objects of games"""
+    """A mixin for objects associated to a particular Game"""
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    game_id = mapped_column(ForeignKey(Game.id))
+    game_id = mapped_column(ForeignKey(Game.id), nullable=False)
 
     @declared_attr
     def game(self) -> Mapped[Game]:
         return relationship(Game)
+
+    # this doesn't work because of some nonsense about MySQL not supporting multi-table delete
+    """def __init_subclass__(cls, **kwargs):
+        \"""Make all GameObjects delete when orphaned"\""
+        @Game.deleteHook.register()
+        def on_game_delete(game: Game):
+            print("cascading " + cls.__name__)
+            game.session.execute(cls.delete().filter_by(game_id=game.id))"""
+
+
+class StateChange(Base):
+    """
+    An abstract model for state changes occurring in a game, e.g. deaths, target assignment, etc.
+    Currently, this has a datestamp for when it occurred,
+    but I intend to instead have state changes "attach" to Event objects.
+    """
+    __abstract__ = True
+    when: Mapped[datetime]
+
+class TempStateChange(StateChange):
+    """
+    An abstract extension of StateChange for events for states that only apply for a limited time,
+    such as going wanted, or police death.
+    """
+    __abstract__ = True
+    expires: Mapped[Optional[datetime]]

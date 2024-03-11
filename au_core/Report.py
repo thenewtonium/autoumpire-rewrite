@@ -4,6 +4,7 @@ Report.py
 Defines the Report class
 """
 
+from typing import List
 from sqlalchemy import ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base
@@ -55,3 +56,6 @@ class Report(Base):
         :return: The parsed plaintext body of this report.
         """
         return parsing_pattern.sub(lambda m: self.event._plaintext_repl_ref(m), self.body)
+
+
+Event.reports: Mapped[List[Report]] = relationship(Report, back_populates="event", order_by=Report.datetimestamp)

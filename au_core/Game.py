@@ -6,11 +6,12 @@ Also implements most of the game logic as methods of this class.
 """
 
 from typing import Optional
-from sqlalchemy.orm import Mapped, mapped_column, relationship, declared_attr
+from sqlalchemy.orm import Mapped, mapped_column, relationship, declared_attr, backref
 from sqlalchemy import ForeignKey
 from .Base import Base, PluginHook
 from .config import config
 from datetime import datetime, timezone, timedelta
+from warnings import warn
 
 # setup for news pages generation from template
 
@@ -58,7 +59,11 @@ class Game(Base):
 
     startHook: PluginHook = PluginHook()
     def start(self):
-        self.startHook._execute(self)
+        if self.started:
+            raise LiveGameError("This game has already been started")
+
+        now = datetime.utcnow()
+        self.startHook._execute(self, now)
         # mark as live
         self.live = True
         self.started = datetime.now(timezone.utc)
@@ -68,19 +73,22 @@ class GameObject:
     """A mixin for objects associated to a particular Game"""
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    game_id = mapped_column(ForeignKey(Game.id), nullable=False)
+    game_id: Mapped[int] = mapped_column(ForeignKey(Game.id), nullable=False)
 
     @declared_attr
     def game(self) -> Mapped[Game]:
         return relationship(Game)
 
     # this doesn't work because of some nonsense about MySQL not supporting multi-table delete
-    """def __init_subclass__(cls, **kwargs):
-        \"""Make all GameObjects delete when orphaned"\""
-        @Game.deleteHook.register()
+    def __init_subclass__(cls, **kwargs):
+        """Make all GameObjects delete when orphaned"""
+        """"@Game.deleteHook.register()
         def on_game_delete(game: Game):
             print("cascading " + cls.__name__)
-            game.session.execute(cls.delete().filter_by(game_id=game.id))"""
+            try:
+                game.session.execute(cls.delete().filter_by(game_id=game.id))
+            except Exception as e:
+                print(f"failed cascade due to {e.__class__.__name__}: {e}")"""
 
 
 class StateChange(Base):

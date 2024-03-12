@@ -18,7 +18,7 @@ import load_csv
 import search_player
 import view_player
 import start_game
-import delete_game
+#import delete_game # cascading doesn't work so don't allow deletes...
 import add_event
 import add_death
 import view_headlines

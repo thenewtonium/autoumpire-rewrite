@@ -118,7 +118,7 @@ def parse_csv(filepath: str, game: au.Game) -> Tuple[List[au.Player], List[Inval
                 # collect error for duplicate email
                 dup = session.scalar(game.players.select().filter_by(email=email))
                 if dup:
-                    errors.append(DuplicateEmailError(email=email, existing_player=dup))
+                    errors.append(DuplicateEmailError(email=email, existing_player=dup, row=row))
                     continue
 
                 # TODO: ensure nonempty pseudonym
@@ -128,7 +128,7 @@ def parse_csv(filepath: str, game: au.Game) -> Tuple[List[au.Player], List[Inval
                                      .where(au.Pseudonym.owner.has(au.Player.game_id == game.id))
                                      .filter_by(text=initial_pseudonym))
                 if dup:
-                    errors.append(DuplicatePseudonymError(pseudonym=initial_pseudonym, existing_player=dup))
+                    errors.append(DuplicatePseudonymError(pseudonym=initial_pseudonym, existing_player=dup, row=row))
 
                 # extract realname
                 # TODO: ensure nonempty real name
@@ -140,7 +140,7 @@ def parse_csv(filepath: str, game: au.Game) -> Tuple[List[au.Player], List[Inval
 
                 registrations.append(newplayer)
                 # also queue it up so that duplicate checking works
-                # TODO: replace this with seperately checking in registrations for duplicates
+                # TODO: replace this with seperately checking in `registrations` for duplicates
                 game.players.add(newplayer)
 
     return (registrations, errors)
@@ -164,6 +164,7 @@ def main(game: au.Game, filepath: str, save: Optional[bool] = False):
                 print(f"-- {err.email} is already the email of {err.existing_player.realname}")
             else:
                 print(f"-- {err}")
+            print()
         return
 
     print("Successfully loaded the following registrations:")

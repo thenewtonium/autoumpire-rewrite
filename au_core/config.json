@@ -1,9 +1,16 @@
 {
   "db_address":"sqlite+pysqlite:///test.db",
   "default_email_domain": "cam.ac.uk",
-  "verbose": true,
+  "verbose": false,
   "n_targs": 2,
   "initial_competence": 7,
   "check_email_deliverability": false,
-  "locale": "en_GB"
+  "locale": "en_GB",
+  "email": {
+    "host": "smtp.srcf.net",
+    "port": "587",
+    "username": "acn44",
+    "password": "RiWoquek6",
+    "from": "acn44@srcf.net"
+  }
 }

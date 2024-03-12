@@ -5,7 +5,7 @@ Defines the Base class for all the ORM models to inherit from, so that SQLAlchem
 """
 
 from sqlalchemy.orm import DeclarativeBase, Session, load_only, Mapped, mapped_column
-from sqlalchemy import select, Select, delete, Delete
+from sqlalchemy import select, Select, delete, Delete, func
 from typing import Callable, Any, List, Optional, Set
 from dataclasses import dataclass, field
 
@@ -40,6 +40,13 @@ class Base(DeclarativeBase):
         :return: A DELETE clause on this object
         """
         return delete(cls)
+
+    @classmethod
+    def count(cls) -> Select:
+        """
+        :return: An efficient counting query (which may be modified by .where() etc.)
+        """
+        return select(func.count(1)).select_from(cls)
 
     @classmethod
     def method(cls, f: Callable[..., Any]) -> Callable[..., Any]:

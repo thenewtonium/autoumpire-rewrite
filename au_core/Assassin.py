@@ -23,11 +23,11 @@ class Assassin(Player):
     """
     Assassin class
 
-    Extends the Player class by including vitality, competence, and targetting relationships.
+    Represents a Full Player.
     """
 
     __tablename__ = "assassins"
-    id = mapped_column(ForeignKey(Player.id), primary_key=True)
+    id = mapped_column(ForeignKey(Player.id, ondelete="CASCADE"), primary_key=True)
 
     alive: Mapped[bool] = mapped_column(default=True)
     competence_deadline: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

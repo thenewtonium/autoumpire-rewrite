@@ -5,9 +5,9 @@ Defines the ORM model `Game` representing a game of assassins.
 Also implements most of the game logic as methods of this class.
 """
 
-from typing import Optional
+from typing import Optional, Union
 from sqlalchemy.orm import Mapped, mapped_column, relationship, declared_attr, backref
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, ScalarSelect
 from .Base import Base, PluginHook
 from .config import config
 from datetime import datetime, timezone, timedelta
@@ -107,3 +107,10 @@ class TempStateChange(StateChange):
     """
     __abstract__ = True
     expires: Mapped[Optional[datetime]]
+
+    @classmethod
+    def exists_including(cls, dt: datetime, *whereclause, **filter_by) -> ScalarSelect:
+        return (cls.select().where(cls.when <= dt,
+                                   ((cls.expires.is_(None)) | (cls.expires > dt)),
+                                   *whereclause)
+                .filter_by(**filter_by)).exists()

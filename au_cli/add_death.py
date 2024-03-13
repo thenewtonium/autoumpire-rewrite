@@ -73,7 +73,8 @@ def main(event_id: Optional[int] = None,
 
         # determine licitness
         if licit is None:
-            licit, reason = victim.licit_for(killer)
+            licit = event.game.is_kill_licit(killer, victim)
+            reason = "" # bodge for now
             if not licit:
                 print(f"This kill is illicit {reason}.")
                 print("Enter Y below if it was licit anyway,"
@@ -86,8 +87,8 @@ def main(event_id: Optional[int] = None,
 
         new_death = au.Death(event_id=event.id, victim_id=victim.id, killer_id=killer.id, licit=licit)
 
-        print(f"Enter Y to confirm the {'licit' if licit else 'illicit'} death of {victim.reg.realname} at the hands of "
-              f"{killer.reg.realname}, during the following event:")
+        print(f"Enter Y to confirm the {'licit' if licit else 'illicit'} death of {victim.realname} at the hands of "
+              f"{killer.realname}, during the following event:")
         print(event.plaintext_headline())
         resp = input().upper()
         if resp == "Y":

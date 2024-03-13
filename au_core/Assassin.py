@@ -9,7 +9,6 @@ import random
 import concurrent.futures
 from typing import List, Optional
 from .Player import Player
-from .Death import licitnessHook
 from .Base import Base
 from .Game import Game
 from sqlalchemy import ForeignKey, DateTime, select, func
@@ -30,7 +29,7 @@ class Assassin(Player):
     id = mapped_column(ForeignKey(Player.id, ondelete="CASCADE"), primary_key=True)
 
     alive: Mapped[bool] = mapped_column(default=True)
-    competence_deadline: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    #competence_deadline: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": "assassin", # sets Player.type for objects of this class to "assassin"

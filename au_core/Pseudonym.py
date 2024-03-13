@@ -82,3 +82,6 @@ Player.pseudonyms: Mapped[List[Pseudonym]] = relationship(Pseudonym, back_popula
                                                             foreign_keys=[Pseudonym.owner_id],
                                                             cascade="all, delete-orphan")
 
+def Player_plaintext_all_pseudonyms(self: Player) -> str:
+    return " AKA ".join((p.text for p in self.pseudonyms))
+Player.plaintext_all_pseudonyms = Player_plaintext_all_pseudonyms

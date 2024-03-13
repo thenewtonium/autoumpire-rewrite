@@ -5,7 +5,7 @@ Defines the Death class, for keeping track of deaths.
 """
 
 from typing import Optional
-from sqlalchemy import ForeignKey, DateTime, event
+from sqlalchemy import ForeignKey, DateTime, ScalarSelect
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .Base import Base, PluginHook
 from .Player import Player
@@ -25,10 +25,21 @@ class Death(Base):
     licit: Mapped[bool] # for the purpose of counting score
 
     event: Mapped[Event] = relationship(foreign_keys=[event_id])
-    victim: Mapped["Player"] = relationship(foreign_keys=[victim_id])
+    victim: Mapped[Player] = relationship(foreign_keys=[victim_id])
+
+    @classmethod
+    def player_dead_subquery(cls, player: Player, at: Optional[datetime] = None) -> ScalarSelect:
+        """Produces a subquery for whether player is dead at datetime dt."""
+        if at is None:
+            at = datetime.utcnow()
+        return (cls.select()
+                .where(cls.victim_id == player.id)
+                .where(cls.event.has(Event.datetimestamp <= at))
+                .where((cls.expires.is_(None)) | (cls.expires > at))
+                ).exists()
 
 
-def Player_dead_at(self, t: datetime) -> bool:
+def Player_dead_at(self: Player, t: datetime) -> bool:
     """
     Queries deaths to determine whether a player was dead at a given time.
     This is important for correctly rendering Pseudonyms.
@@ -48,7 +59,7 @@ Player.dead_at = Player_dead_at
 
 licitnessHook = PluginHook()
 # TODO: either move this into Death class or have as standalone function in the module (requires rewriting usages)
-def Game_is_kill_licit(self, killer: Player, victim: Player):
+def Game_is_kill_licit(self: Game, killer: Player, victim: Player):
     """
     Function to determine whether given kill is licit, self-defence notwithstanding.
     :param victim_id: Id of the Player who was killed

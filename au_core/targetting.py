@@ -75,7 +75,7 @@ Assassin.has_target = Assassin_has_target
 
 ### Set kills between targets as licit
 @licitnessHook.register()
-def target_licitness(killer: Player, victim: Player) -> Optional[bool]:
+def _target_licitness(killer: Player, victim: Player) -> Optional[bool]:
     if (isinstance(killer, Assassin) and isinstance(victim, Assassin)):
         return True if (killer.has_target(victim) or victim.has_target(killer)) else None
 

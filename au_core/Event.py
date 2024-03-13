@@ -115,7 +115,7 @@ def Game_generate_headlines(self) -> str:
     return template.render(events=events)
 Game.generate_headlines = Game_generate_headlines
 
-def Game_events_in_week(self, week_n: int) -> ScalarResult[Event]:
+def Game_events_in_week(self: Game, week_n: int) -> ScalarResult[Event]:
     """
     :param week_n: The week number to query events in.
     :return: The result of querying Event objects whose datetimestamp falls in week_n
@@ -129,7 +129,7 @@ def Game_events_in_week(self, week_n: int) -> ScalarResult[Event]:
     ))
 Game.events_in_week = Game_events_in_week
 
-def Game_generate_news_page(self, week_n) -> str:
+def Game_generate_news_page(self: Game, week_n) -> str:
     from .templates import env
     template = env.get_template("news.jinja")
 
